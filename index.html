@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro Travel OS | 智能规划终端</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
+
+        :root {
+            --retro-orange: #ffb000; /* 经典琥珀色显示器色 */
+            --retro-bg: #121212;
+        }
+
+        body {
+            background-color: var(--retro-bg);
+            color: var(--retro-orange);
+            font-family: 'Courier Prime', monospace;
+            background-image: radial-gradient(circle, #1a1a1a 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        /* 复古显示器扫描线效果 */
+        body::before {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            z-index: 100;
+            background-size: 100% 4px, 3px 100%;
+            pointer-events: none;
+        }
+
+        .retro-border {
+            border: 2px solid var(--retro-orange);
+            box-shadow: 0 0 10px var(--retro-orange);
+        }
+
+        input, select, textarea {
+            background: transparent !important;
+            border: 1px solid var(--retro-orange) !important;
+            color: var(--retro-orange) !important;
+            outline: none;
+        }
+
+        input:focus { box-shadow: 0 0 8px var(--retro-orange); }
+
+        .btn-retro {
+            background: var(--retro-orange);
+            color: black;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .btn-retro:hover {
+            box-shadow: 0 0 20px var(--retro-orange);
+            transform: translateY(-2px);
+        }
+
+        .type-label { border: 1px solid var(--retro-orange); padding: 2px 6px; font-size: 10px; }
+        
+        /* 隐藏滚动条 */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-5xl mx-auto border-2 border-[#ffb000] p-6 md:p-10 relative">
+        <div class="absolute top-0 left-0 p-1 bg-[#ffb000] text-black text-[10px]">MOMOMAP</div>
+        
+        <header class="mb-12 border-b-2 border-[#ffb000] pb-6 flex justify-between items-end">
+            <div>
+                <h1 class="text-4xl font-bold tracking-widest uppercase">Travel Terminal</h1>
+                <p class="mt-2 text-sm opacity-70">>> 智能识别模式已开启 / 感知特定地理环境建议</p>
+            </div>
+            <div id="stats" class="text-2xl">00_PLANS</div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+            <aside class="lg:col-span-4 space-y-6">
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-xs uppercase">[ 类别 ]</label>
+                        <select id="type" class="w-full mt-1 p-3 text-sm">
+                            <option value="spot">📍 景点 / 目的地</option>
+                            <option value="food">🍴 餐厅 / 补给</option>
+                            <option value="transport">✈️ 交通 / 移防</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="text-xs uppercase">[ 名称 ]</label>
+                        <input id="title" type="text" placeholder="输入关键字如: 爬山, 海边, 博物馆..." class="w-full mt-1 p-3 text-sm">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-xs uppercase">[ 日期 ]</label>
+                            <input id="date" type="date" class="w-full mt-1 p-3 text-sm">
+                        </div>
+                        <div>
+                            <label class="text-xs uppercase">[ 时间 ]</label>
+                            <input id="time" type="text" placeholder="14:00" class="w-full mt-1 p-3 text-sm">
+                        </div>
+                    </div>
+
+                    <button onclick="saveItem()" class="w-full btn-retro p-4 text-sm mt-4 uppercase">
+                        执行计划录入
+                    </button>
+                </div>
+
+                <div class="text-[10px] opacity-40 leading-relaxed border-t border-[#ffb000] pt-4">
+                    NOTE: 系统会自动根据目的地关键词生成环境生存建议。支持关键词：爬山、海边、森林、博物馆、飞行。
+                </div>
+            </aside>
+
+            <main class="lg:col-span-8">
+                <div id="list-container" class="space-y-6 no-scrollbar max-h-[70vh] overflow-y-auto">
+                    </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // 智能建议引擎词库
+        const smartTips = {
+            "爬山": "记得准备驱蚊喷雾，带足饮用水，穿着专业登山鞋。",
+            "山": "注意海拔变化，建议携带轻便外套防风。",
+            "海": "防晒霜是必需品，注意潮汐时间，保护电子设备。",
+            "沙滩": "建议携带防水袋，防晒霜每2小时涂抹一次。",
+            "博物馆": "内部禁止闪光灯，建议携带耳机收听导览，保持安静。",
+            "展": "提前在线预约，避开人流高峰期。",
+            "飞机": "由于高空干燥，注意水分补充，长途建议携带U型枕。",
+            "飞": "确认航站楼信息，建议提前2小时到达机场。",
+            "森林": "严禁烟火，注意观察路标，预防昆虫叮咬。"
+        };
+
+        let travelData = JSON.parse(localStorage.getItem('retro_travel_data')) || [];
+
+        function render() {
+            const container = document.getElementById('list-container');
+            const stats = document.getElementById('stats');
+            container.innerHTML = '';
+
+            travelData.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            travelData.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'border border-[#ffb000] p-5 relative group hover:bg-[#ffb000] hover:text-black transition-all';
+                
+                // 自动识别建议
+                let autoTip = "";
+                for (let key in smartTips) {
+                    if (item.title.includes(key)) {
+                        autoTip = `[ MOMO建议 ]: ${smartTips[key]}`;
+                        break;
+                    }
+                }
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3">
+                                <span class="type-label">${item.type.toUpperCase()}</span>
+                                <span class="text-xs opacity-60">${item.date} ${item.time}</span>
+                            </div>
+                            <h3 class="text-2xl font-bold mt-2">${item.title}</h3>
+                            ${autoTip ? `<p class="mt-2 text-xs border-l-2 border-current pl-3 italic">${autoTip}</p>` : ''}
+                        </div>
+                        <button onclick="removeItem(${index})" class="text-[10px] border border-current px-2 opacity-0 group-hover:opacity-100">DEL</button>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            stats.innerText = travelData.length.toString().padStart(2, '0') + "_PLANS";
+            localStorage.setItem('retro_travel_data', JSON.stringify(travelData));
+        }
+
+        function saveItem() {
+            const data = {
+                type: document.getElementById('type').value,
+                title: document.getElementById('title').value,
+                date: document.getElementById('date').value,
+                time: document.getElementById('time').value
+            };
+
+            if (!data.title) return;
+
+            travelData.push(data);
+            document.getElementById('title').value = '';
+            document.getElementById('time').value = '';
+            render();
+        }
+
+        function removeItem(index) {
+            travelData.splice(index, 1);
+            render();
+        }
+
+        render();
+    </script>
+</body>
+</html>
