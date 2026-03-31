@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mission Control | 行为序列终端 V8.5</title>
+    <title>Mission Control | 深度行为序列终端</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     
@@ -19,109 +19,109 @@
         :root { --retro-orange: #ffb000; --retro-bg: #0a0a0a; }
         body { background-color: var(--retro-bg); color: var(--retro-orange); font-family: 'Courier Prime', monospace; margin: 0; overflow-x: hidden; }
         
+        /* 终端网格背景 */
         body::before {
             content: ""; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background-image: linear-gradient(rgba(255, 176, 0, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 176, 0, 0.05) 1px, transparent 1px);
             background-size: 30px 30px; pointer-events: none; z-index: -1;
         }
 
-        .map-frame { height: 100%; min-height: 500px; border: 1px solid var(--retro-orange); background: #000; position: relative; }
-        #map-container { width: 100%; height: 100%; }
+        .map-frame { height: 100%; min-height: 400px; border: 1px solid var(--retro-orange); background: #000; position: relative; }
+        #map { width: 100%; height: 100%; }
         
-        /* 深度任务卡片 */
-        .plan-card { background: rgba(255, 176, 0, 0.03); border: 1px solid rgba(255, 176, 0, 0.15); margin-bottom: 15px; position: relative; }
-        .plan-card:hover { border-color: var(--retro-orange); background: rgba(255, 176, 0, 0.08); }
-        .drag-handle { cursor: grab; width: 30px; display: flex; align-items: center; justify-content: center; background: rgba(255, 176, 0, 0.1); font-weight: bold; }
+        /* 深度任务卡片设计 */
+        .plan-card { background: rgba(255, 176, 0, 0.02); border: 1px solid rgba(255, 176, 0, 0.1); margin-bottom: 12px; transition: all 0.3s; position: relative; }
+        .plan-card:hover { border-color: var(--retro-orange); background: rgba(255, 176, 0, 0.05); }
+        .drag-handle { cursor: grab; padding: 0 10px; display: flex; align-items: center; background: rgba(255, 176, 0, 0.05); color: var(--retro-orange); opacity: 0.5; border-right: 1px solid rgba(255,176,0,0.1); }
         
-        /* 标签样式 */
-        .tag-logic { font-size: 10px; padding: 2px 6px; background: rgba(255, 176, 0, 0.1); border: 1px solid var(--retro-orange); color: var(--retro-orange); }
-        .tag-action { border-left: 2px solid var(--retro-orange); padding-left: 8px; margin-top: 8px; font-size: 11px; color: #eee; }
-        .tag-warning { border-left: 2px solid #ff4444; background: rgba(255, 68, 68, 0.1); padding: 4px 8px; margin-top: 8px; font-size: 11px; color: #ff8888; animation: pulse 2s infinite; }
+        .cat-tag { font-size: 9px; padding: 2px 6px; background: rgba(255, 176, 0, 0.1); border: 1px solid var(--retro-orange); color: var(--retro-orange); font-weight: bold; letter-spacing: 1px; }
+        input { background: rgba(0,0,0,0.8); border: 1px solid var(--retro-orange); color: var(--retro-orange); outline: none; padding: 10px; font-size: 14px; }
         
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
-
-        input { background: rgba(0,0,0,0.8); border: 1px solid var(--retro-orange); color: var(--retro-orange); padding: 10px; font-size: 14px; outline: none; }
+        /* 隐藏高德默认UI */
         .amap-logo, .amap-copyright { display: none !important; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: var(--retro-orange); }
     </style>
 </head>
 <body class="p-4 lg:p-8">
     <div class="max-w-[1600px] mx-auto flex flex-col min-h-[92vh]">
         
-        <header class="mb-6 border-b-2 border-[#ffb000] pb-4 flex justify-between items-end">
+        <header class="mb-8 border-b-2 border-[#ffb000] pb-4 flex justify-between items-end">
             <div>
-                <div class="text-[10px] bg-[#ffb000] text-black px-2 inline-block font-bold mb-2">M-SYS_LOGISTICS_V8.5_HYBRID</div>
-                <h1 class="text-4xl font-black italic tracking-tighter uppercase text-white">Mission Control</h1>
-                <p class="text-xs opacity-60 mt-1">>> [系统状态]：在线 | 天气：晴 26°C | MOMORECOM 解析引擎已就绪</p>
+                <div class="text-[10px] bg-[#ffb000] text-black px-2 inline-block font-bold mb-2">M-SYS_LOGISTICS_V8.8_PRO</div>
+                <h1 class="text-4xl lg:text-5xl font-black italic tracking-tighter uppercase">Mission Control</h1>
+                <p class="text-xs opacity-60 mt-1">>> MOMORECOM 深度解析引擎 [数据已持久化本地存储]</p>
             </div>
             <div class="text-right">
-                <span class="text-[10px] opacity-50 uppercase">Active_Nodes</span><br>
-                <span id="loc-num" class="text-5xl font-bold italic text-[#ffb000]">00</span>
+                <span class="text-[10px] opacity-50 uppercase">Target_Count</span><br>
+                <span id="loc-num" class="text-5xl font-bold italic">00</span>
             </div>
         </header>
 
         <div class="flex flex-col lg:grid lg:grid-cols-12 gap-8 flex-1">
-            <div class="lg:col-span-5 flex flex-col h-full">
-                <div class="flex gap-2 mb-6">
-                    <input id="sub-time" type="text" placeholder="HH:MM" class="w-20 text-center font-bold">
-                    <input id="sub-place" type="text" placeholder="输入坐标 (如: 太平山顶、红茶餐厅)" class="flex-1">
-                    <button onclick="addSub()" class="bg-[#ffb000] text-black px-6 font-bold text-xs uppercase hover:bg-white transition-all">部署</button>
+            <div class="lg:col-span-6 flex flex-col h-full">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-sm font-bold uppercase tracking-[0.2em]">[ 战术任务流 ]</h2>
+                    <div class="status-bar text-[10px] opacity-70" id="sys-status">【系统状态】：在线 | 存储正常</div>
                 </div>
-                <div id="sub-list" class="flex-1 overflow-y-auto space-y-4 pr-2 max-h-[70vh]">
-                    </div>
+
+                <div class="flex gap-2 mb-6">
+                    <input id="sub-time" type="text" placeholder="HH:MM" class="w-20 text-center">
+                    <input id="sub-place" type="text" placeholder="输入坐标 (如: 太平山顶、红茶餐厅)" class="flex-1">
+                    <button onclick="addSub()" class="bg-[#ffb000] text-black px-6 font-bold text-xs uppercase hover:invert transition-all">部署</button>
+                </div>
+
+                <div id="sub-list" class="flex-1 overflow-y-auto space-y-4 pr-2"></div>
             </div>
 
-            <div class="lg:col-span-7 flex flex-col h-full">
-                <div class="map-frame">
-                    <div id="map-container"></div>
+            <div class="lg:col-span-6 flex flex-col h-full min-h-[500px]">
+                <h2 class="text-sm font-bold uppercase tracking-[0.2em] mb-4">>> 实时坐标匹配 (AMAP_DARK)</h2>
+                <div class="map-frame flex-1">
+                    <div id="map"></div>
                 </div>
+                <button onclick="resetData()" class="block w-full text-center text-[10px] py-4 border border-red-900/50 mt-4 uppercase tracking-[0.5em] hover:bg-red-900/20 text-red-500">
+                    << RESET_DATABASE_SYSTEM
+                </button>
             </div>
         </div>
     </div>
 
     <script>
-        // 1. 强化版知识库 (智能分类与动作指令)
+        // 1. 深度指令知识库
         const INTEL_DB = {
-            '高铁': { icon: '🚄', cat: 'TRANSIT', task: '执行铁路位移', action: '核对发车时间，预留30分钟安检/通关，确认行李存储空间。' },
-            '地铁': { icon: '🚇', cat: 'TRANSIT', task: '城市轨道穿梭', action: '准备扫码/八达通，注意换乘站点。' },
-            '餐厅': { icon: '🍽️', cat: 'FOOD', task: '能量补给', action: '执行地道扫街，避开高峰排队，推荐必点特色。' },
-            '冰室': { icon: '🍽️', cat: 'FOOD', task: '港式补给', action: '体验地道风味，推荐：冻奶茶、菠萝油。' },
-            '山顶': { icon: '⛰️', cat: 'PLAY', task: '环境扫描', action: '乘坐缆车抵达，执行全景扫描，确认能见度参数。', warning: '如能见度低于5公里，建议切换至 Plan B 购物行程。' },
-            '购物': { icon: '🛍️', cat: 'SHOPPING', task: '物资采购', action: '比对汇率价格，扫描品牌分布，执行退税流程。' },
-            '商场': { icon: '🛍️', cat: 'SHOPPING', task: '物资采购', action: '检查退税点，同步最新折扣信息。' },
-            '酒店': { icon: '🏨', cat: 'LODGING', task: '战术休整', action: '办理 Check-in，确认 WiFi 通信及周边安全出口。' },
-            '民宿': { icon: '🏨', cat: 'LODGING', task: '战术休整', action: '确认自助入住密码。' }
+            '站': { icon: '🚄', cat: 'TRANSIT', task: '执行跨境/城际位移', action: '前往出发层，执行安检，确认行李存储，预留30分钟通关时间。' },
+            '餐厅': { icon: '🍽️', cat: 'FOOD', task: '能量补给', action: '必点特色菜品，确认翻台速度，避开高峰期。' },
+            '山': { icon: '⛰️', cat: 'PLAY', task: '环境探索', action: '乘坐缆车/巴士抵达，在观景台执行全景扫描。', directive: '确认能见度，如低于5公里则启用Plan B。' },
+            '酒店': { icon: '🏨', cat: 'LODGING', task: '战术休整', action: '办理入住，确认WiFi通信链路及周边安全出口。' },
+            '广场': { icon: '🛍️', cat: 'SHOPPING', task: '物资采购', action: '比对汇率价格，执行采购清单，记录退税点位。' }
         };
 
-        let map, geocoder, polyline;
-        let markers = [];
-        let tripData = [
+        let map, geocoder, polyline, markers = [];
+
+        // 2. 数据持久化：从本地读取
+        let travelData = JSON.parse(localStorage.getItem('m_control_save')) || [
             { time: "07:30", place: "深圳北站" },
-            { time: "09:00", place: "红茶餐厅" },
-            { time: "10:30", place: "太平山顶" }
+            { time: "09:00", place: "红茶餐厅" }
         ];
 
-        // 2. 初始化高德地图
         function initMap() {
-            map = new AMap.Map('map-container', {
+            map = new AMap.Map('map', {
                 viewMode: '3D',
                 zoom: 12,
-                center: [114.05, 22.54],
                 mapStyle: 'amap://styles/darkblue'
             });
-            geocoder = new AMap.Geocoder();
+            geocoder = new AMap.Geocoder({ city: "全国" });
             polyline = new AMap.Polyline({
                 path: [],
                 strokeColor: "#ffb000",
                 strokeWeight: 4,
                 strokeStyle: "dashed",
-                strokeDasharray: [10, 10],
                 showDir: true
             });
             map.add(polyline);
             render();
         }
 
-        // 3. 智能解析与渲染
         async function render() {
             const list = document.getElementById('sub-list');
             list.innerHTML = '';
@@ -129,80 +129,94 @@
             markers = [];
             let pathPositions = [];
 
-            for (let i = 0; i < tripData.length; i++) {
-                const item = tripData[i];
-                // 语义匹配
+            // 保存到本地
+            localStorage.setItem('m_control_save', JSON.stringify(travelData));
+
+            for (let i = 0; i < travelData.length; i++) {
+                const item = travelData[i];
                 const metaKey = Object.keys(INTEL_DB).find(k => item.place.includes(k));
                 const meta = metaKey ? INTEL_DB[metaKey] : { icon: '📍', cat: 'TASK', task: '区域探索', action: '到达后确认环境安全，同步实时坐标。' };
 
-                // UI 卡片构建
                 const card = document.createElement('div');
-                card.className = 'plan-card flex';
+                card.className = 'plan-card flex flex-col md:flex-row';
                 card.innerHTML = `
-                    <div class="drag-handle text-[#ffb000]/50">::</div>
+                    <div class="drag-handle justify-center md:justify-start py-2 md:py-0">::</div>
                     <div class="p-4 flex-1">
-                        <div class="flex justify-between items-start mb-2 border-b border-[#ffb000]/20 pb-2">
+                        <div class="flex justify-between items-start mb-3 border-b border-[#ffb000]/20 pb-2">
                             <div class="flex items-center gap-3">
-                                <span class="bg-[#ffb000] text-black px-2 font-bold text-xs">${meta.icon} ${item.time}</span>
-                                <span class="text-lg font-bold text-white tracking-widest">${item.place}</span>
+                                <span class="text-sm bg-[#ffb000] text-black px-2 font-bold">${item.time}</span>
+                                <span class="text-lg font-bold tracking-widest text-white">${item.place}</span>
                             </div>
-                            <button onclick="delSub(${i})" class="text-[10px] opacity-40 hover:opacity-100">✕ ERASE</button>
+                            <div class="flex flex-col items-end gap-1">
+                                <span class="cat-tag">[ ${meta.cat} ]</span>
+                                <button onclick="delSub(${i})" class="text-[10px] opacity-40 hover:opacity-100 mt-1">✕ ERASE</button>
+                            </div>
                         </div>
-                        <div class="space-y-1">
-                            <div class="text-[11px]"><span class="tag-logic">[ ${meta.cat} ]</span> 任务：${meta.task}</div>
-                            <div class="tag-action"><b class="text-[#ffb000]">MOMORECOM (ACTION)：</b>${meta.action}</div>
-                            ${meta.warning ? `<div class="tag-warning">⚠️ 系统指令：${meta.warning}</div>` : ''}
+                        <div class="text-[11px] space-y-2 mt-2">
+                            <div class="text-white/80"><span class="text-[#ffb000]">任务：</span> ${meta.task}</div>
+                            <div class="text-white/80"><span class="text-[#ffb000]">MOMORECOM (ACTION)：</span> ${meta.action}</div>
+                            ${meta.directive ? `<div class="text-[#ffb000] bg-red-900/30 p-1 border-l-2 border-red-500 mt-2 animate-pulse">⚠️ 系统指令：${meta.directive}</div>` : ''}
                         </div>
                     </div>
                 `;
                 list.appendChild(card);
 
-                // 坐标解析
-                try {
-                    const pos = await new Promise(resolve => {
-                        geocoder.getLocation(item.place, (s, r) => resolve(s === 'complete' && r.geocodes.length ? r.geocodes[0].location : null));
+                // 精准定位补全逻辑
+                let searchName = item.place;
+                if(searchName.length < 5 && !searchName.includes('市')) searchName = "深圳" + searchName;
+
+                const pos = await new Promise(resolve => {
+                    geocoder.getLocation(searchName, (status, result) => {
+                        resolve(status === 'complete' && result.geocodes.length ? result.geocodes[0].location : null);
                     });
-                    if (pos) {
-                        pathPositions.push(pos);
-                        const marker = new AMap.Marker({
-                            position: pos,
-                            content: `<div style="background:#ffb000; color:#000; width:22px; height:22px; border-radius:50%; text-align:center; line-height:22px; font-weight:bold; font-size:11px; border:2px solid #000;">${i+1}</div>`,
-                            offset: new AMap.Pixel(-11, -11)
-                        });
-                        markers.push(marker);
-                        map.add(marker);
-                    }
-                } catch (e) {}
+                });
+
+                if (pos) {
+                    pathPositions.push(pos);
+                    const m = new AMap.Marker({
+                        position: pos,
+                        content: `<div style="background:#ffb000; color:#000; width:20px; height:20px; border-radius:50%; text-align:center; line-height:20px; font-weight:bold; font-size:10px; border:1px solid #000;">${i+1}</div>`,
+                        offset: new AMap.Pixel(-10, -10)
+                    });
+                    markers.push(m);
+                    map.add(m);
+                }
             }
 
             if (pathPositions.length > 0) {
                 polyline.setPath(pathPositions);
                 map.setFitView([polyline, ...markers], false, [60, 60, 60, 60]);
             }
-            document.getElementById('loc-num').innerText = tripData.length.toString().padStart(2, '0');
+            document.getElementById('loc-num').innerText = travelData.length.toString().padStart(2, '0');
         }
 
-        // 4. 基础交互
         function addSub() {
-            const time = document.getElementById('sub-time').value || '12:00';
+            const time = document.getElementById('sub-time').value || '00:00';
             const place = document.getElementById('sub-place').value;
             if (!place) return;
-            tripData.push({ time, place });
+            travelData.push({ time, place });
             document.getElementById('sub-place').value = '';
             render();
         }
 
         function delSub(i) {
-            tripData.splice(i, 1);
+            travelData.splice(i, 1);
             render();
         }
 
-        Sortable.create(document.getElementById('sub-list'), {
-            handle: '.drag-handle',
-            animation: 200,
+        function resetData() {
+            if(confirm("确定清空所有本地数据并重置系统？")) {
+                localStorage.removeItem('m_control_save');
+                location.reload();
+            }
+        }
+
+        Sortable.create(document.getElementById('sub-list'), { 
+            handle: '.drag-handle', 
+            animation: 250, 
             onEnd: (evt) => {
-                const item = tripData.splice(evt.oldIndex, 1)[0];
-                tripData.splice(evt.newIndex, 0, item);
+                const item = travelData.splice(evt.oldIndex, 1)[0];
+                travelData.splice(evt.newIndex, 0, item);
                 render();
             }
         });
