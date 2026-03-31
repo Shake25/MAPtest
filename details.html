@@ -9,31 +9,35 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
         :root { --retro-orange: #ffb000; --retro-bg: #121212; }
-        body { 
-            background-color: var(--retro-bg); color: var(--retro-orange); 
-            font-family: 'Courier Prime', monospace; 
-        }
+        body { background-color: var(--retro-bg); color: var(--retro-orange); font-family: 'Courier Prime', monospace; }
         .retro-border { border: 2px solid var(--retro-orange); }
         input { background: transparent; border: 1px solid var(--retro-orange); color: var(--retro-orange); outline: none; padding: 8px; font-size: 13px; }
         
         /* 地图滤镜 */
-        #map-container iframe {
-            filter: invert(90%) hue-rotate(150deg) brightness(0.8) contrast(1.2);
-            mix-blend-mode: screen;
-        }
+        #map-container iframe { filter: invert(90%) hue-rotate(150deg) brightness(0.8) contrast(1.2); mix-blend-mode: screen; }
 
-        /* 拖拽相关样式 */
-        .plan-card { border-left: 3px solid var(--retro-orange); background: rgba(255,176,0,0.03); cursor: default; }
-        .drag-handle { cursor: grab; padding: 0 10px; opacity: 0.4; font-weight: bold; font-size: 18px; }
+        /* --- 关键：拖拽交互样式 --- */
+        .plan-card { 
+            border-left: 4px solid var(--retro-orange); 
+            background: rgba(255,176,0,0.03); 
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .drag-handle { 
+            cursor: grab; 
+            background: rgba(255, 176, 0, 0.1); 
+            display: flex; align-items: center; justify-content: center;
+            width: 30px; height: 100%; border-right: 1px inset rgba(255, 176, 0, 0.2);
+            font-size: 20px; font-weight: bold;
+        }
         .drag-handle:active { cursor: grabbing; }
-        .sortable-ghost { opacity: 0.2; background: var(--retro-orange) !important; border: 1px dashed var(--retro-orange); }
-        .sortable-chosen { background: rgba(255,176,0,0.1) !important; }
+        
+        /* 拖拽中的视觉反馈 */
+        .sortable-ghost { opacity: 0.1; background: var(--retro-orange) !important; }
+        .sortable-drag { background: #222 !important; box-shadow: 0 10px 30px rgba(0,0,0,1); border: 1px solid var(--retro-orange); }
 
         .tip-box { font-size: 10px; color: #fff; background: rgba(255,176,0,0.15); border-radius: 2px; padding: 4px 8px; margin-top: 6px; display: inline-block; font-style: italic; }
         .tag-icon { border: 1px solid var(--retro-orange); padding: 0 5px; font-size: 10px; font-weight: bold; margin-right: 8px; text-transform: uppercase; }
-        
-        /* 扫描线 */
-        .scanline { width: 100%; height: 2px; background: rgba(255, 176, 0, 0.1); position: absolute; animation: scan 4s linear infinite; pointer-events: none; }
+        .scanline { width: 100%; height: 2px; background: rgba(255, 176, 0, 0.05); position: absolute; animation: scan 4s linear infinite; pointer-events: none; }
         @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
     </style>
 </head>
@@ -45,32 +49,30 @@
         <header class="mt-8 mb-10 border-b-2 border-[#ffb000] pb-6 flex justify-between items-end">
             <div>
                 <h1 id="main-title" class="text-4xl font-bold uppercase tracking-widest italic">--</h1>
-                <p id="main-info" class="text-[10px] mt-2 opacity-60 font-bold uppercase tracking-widest">>> 序列重排模式已激活</p>
+                <p class="text-[10px] mt-2 opacity-60 font-bold uppercase">>> 行程重排系统在线 [READY_TO_DRAG]</p>
             </div>
             <div class="text-right">
-                <p class="text-[10px] font-bold">LOC_COUNT</p>
+                <p class="text-[10px] font-bold">TASK_COUNT</p>
                 <p id="loc-num" class="text-3xl font-bold">00</p>
             </div>
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
             <section>
-                <h2 class="text-sm font-bold mb-6 uppercase tracking-widest border-b border-[#ffb000]/30 w-fit">>> 任务时间轴 (可拖拽重排)</h2>
+                <h2 class="text-sm font-bold mb-6 uppercase tracking-widest border-b border-[#ffb000]/30 w-fit">>> 详细行动序列</h2>
                 <div class="flex gap-2 mb-10">
-                    <input id="sub-time" type="text" placeholder="10:00" class="w-20">
-                    <input id="sub-place" type="text" placeholder="录入：高铁、酒店、爬山、吃饭..." class="flex-1">
-                    <button onclick="addSub()" class="bg-[#ffb000] text-black px-6 font-bold hover:bg-white transition-colors">ENTRY</button>
+                    <input id="sub-time" type="text" placeholder="Time" class="w-20">
+                    <input id="sub-place" type="text" placeholder="输入：高铁、酒店、爬山..." class="flex-1">
+                    <button onclick="addSub()" class="bg-[#ffb000] text-black px-6 font-bold hover:bg-white transition-colors">ADD</button>
                 </div>
-                <div id="sub-list" class="space-y-6">
-                    </div>
+                <div id="sub-list" class="space-y-6"></div>
             </section>
 
             <section>
-                <h2 class="text-sm font-bold mb-6 uppercase tracking-widest border-b border-[#ffb000]/30 w-fit">>> 动态地理坐标映射</h2>
+                <h2 class="text-sm font-bold mb-6 uppercase tracking-widest border-b border-[#ffb000]/30 w-fit">>> 实时坐标匹配</h2>
                 <div id="map-container" class="retro-border h-[450px] bg-black relative overflow-hidden">
                     <iframe id="map-iframe" width="100%" height="100%" frameborder="0" src=""></iframe>
                 </div>
-                <p class="text-[9px] mt-4 opacity-40 italic">TIP: 拖动左侧条目可改变任务优先级，系统将自动同步地理路径。</p>
             </section>
         </div>
     </div>
@@ -82,27 +84,22 @@
 
         const config = {
             keywords: {
-                '高铁': { label: 'TRANSIT', icon: '🚄', tip: '建议提前30min到站，预留检票步程。' },
-                '车': { label: 'TRANSIT', icon: '🚗', tip: '检查路况，确保电量/油量充足。' },
-                '机': { label: 'TRANSIT', icon: '✈️', tip: '确认航站楼信息，起飞前2小时到达。' },
-                '酒店': { label: 'LODGING', icon: '🏨', tip: '确认入住时间，检查消防通道。' },
-                '住': { label: 'LODGING', icon: '🏠', tip: '确认退房限制与行李寄存。' },
-                '爬山': { label: 'ACTION', icon: '🏔️', tip: '检查天气，备好护膝与充足水分。' },
-                '徒步': { label: 'ACTION', icon: '🥾', tip: '保持匀速，注意轨迹，轻量化负重。' },
-                '玩': { label: 'ACTION', icon: '🎡', tip: '提前购票，留意闭园时间。' },
-                '餐': { label: 'SUPPLY', icon: '🍴', tip: '热门商圈建议提前预约。' },
-                '吃': { label: 'SUPPLY', icon: '🍚', tip: '尝试当地特色，注意饮食卫生。' }
+                '高铁': { label: 'TRANSIT', icon: '🚄', tip: '建议提前30min到站，高铁站较大，预留检票步程。' },
+                '酒店': { label: 'LODGING', icon: '🏨', tip: '确认是否有一次性用品，提前联系前台保留房间。' },
+                '爬山': { label: 'ACTION', icon: '🏔️', tip: '检查天气，备好护膝与速干衣物。' },
+                '餐': { label: 'SUPPLY', icon: '🍴', tip: '高峰期建议提前排号。' },
+                '吃': { label: 'SUPPLY', icon: '🍚', tip: '注意饮食卫生，备好肠胃药。' }
             },
-            default: { label: 'TARGET', icon: '📍', tip: '到达目的地后确认环境安全，更新状态。' }
+            default: { label: 'TARGET', icon: '📍', tip: '到达目的地后确认环境安全，同步坐标。' }
         };
 
         // 初始化拖拽引擎
         const subListEl = document.getElementById('sub-list');
         Sortable.create(subListEl, {
-            animation: 200,
-            handle: '.drag-handle', // 只有按住 :: 才能拖动
+            animation: 250,
+            handle: '.drag-handle', // 必须通过这个手柄才能拖拽
             ghostClass: 'sortable-ghost',
-            chosenClass: 'sortable-chosen',
+            dragClass: 'sortable-drag',
             onEnd: function() {
                 saveOrder();
             }
@@ -120,12 +117,11 @@
                 }
 
                 const item = document.createElement('div');
-                // 绑定当前索引，方便排序识别
-                item.setAttribute('data-id', i);
-                item.className = 'plan-card p-4 relative group flex items-start';
+                item.setAttribute('data-id', i); // 极其重要，用于记录原始索引
+                item.className = 'plan-card flex relative group overflow-hidden';
                 item.innerHTML = `
-                    <div class="drag-handle mt-1">::</div>
-                    <div class="flex-1">
+                    <div class="drag-handle">::</div>
+                    <div class="flex-1 p-4">
                         <div class="flex justify-between items-start">
                             <div>
                                 <div class="flex items-center">
@@ -133,11 +129,9 @@
                                     <span class="text-xs font-bold opacity-50 mr-3">${p.time}</span>
                                     <span class="font-bold tracking-widest text-lg">${meta.icon} ${p.place}</span>
                                 </div>
-                                <div class="tip-box">
-                                    <span class="mr-2">💡</span>RECOM: ${meta.tip}
-                                </div>
+                                <div class="tip-box">💡 RECOM: ${meta.tip}</div>
                             </div>
-                            <button onclick="delSub(${i})" class="text-[9px] opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all italic">/ REMOVE</button>
+                            <button onclick="delSub(${i})" class="text-[9px] opacity-0 group-hover:opacity-100 hover:text-white transition-opacity italic">/ ERASE</button>
                         </div>
                     </div>
                 `;
@@ -149,7 +143,6 @@
             localStorage.setItem('retro_travel_data', JSON.stringify(travelData));
         }
 
-        // 保存拖动后的新顺序
         function saveOrder() {
             const newOrder = [];
             const items = document.querySelectorAll('#sub-list > div');
@@ -158,7 +151,7 @@
                 newOrder.push(trip.sub_plans[oldIdx]);
             });
             trip.sub_plans = newOrder;
-            render(); // 重新渲染以更新 data-id
+            render(); // 重新渲染以刷新 data-id
         }
 
         function addSub() {
@@ -181,8 +174,6 @@
                 const latestPlace = trip.sub_plans[trip.sub_plans.length - 1].place;
                 const searchUrl = `https://www.google.com/maps?q=${encodeURIComponent(latestPlace)}&output=embed`;
                 document.getElementById('map-iframe').src = searchUrl;
-            } else {
-                document.getElementById('map-iframe').src = "about:blank";
             }
         }
 
