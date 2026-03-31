@@ -3,52 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Briefing | 详细计划终端</title>
+    <title>Briefing | 战术详情</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
         :root { --retro-orange: #ffb000; --retro-bg: #121212; }
         body { background-color: var(--retro-bg); color: var(--retro-orange); font-family: 'Courier Prime', monospace; }
-        body::before {
-            content: " "; display: block; position: fixed; top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
-            z-index: 1000; background-size: 100% 4px; pointer-events: none;
-        }
         .retro-border { border: 2px solid var(--retro-orange); }
-        input { background: transparent; border: 1px solid var(--retro-orange); color: var(--retro-orange); outline: none; padding: 8px; }
-        #map-container { filter: grayscale(1) invert(1) contrast(1.2) brightness(0.8); }
-        .tag { border: 1px solid var(--retro-orange); padding: 1px 4px; font-size: 9px; margin-right: 5px; }
+        input { background: transparent; border: 1px solid var(--retro-orange); color: var(--retro-orange); outline: none; padding: 8px; font-size: 13px; }
+        
+        /* 地图黑金滤镜：解决显示问题并统一风格 */
+        #map-container iframe {
+            filter: invert(90%) hue-rotate(150deg) brightness(0.8) contrast(1.2);
+            mix-blend-mode: screen;
+        }
+        .plan-card { border-left: 3px solid var(--retro-orange); background: rgba(255,176,0,0.03); }
+        .tip-box { font-size: 10px; color: #fff; background: rgba(255,176,0,0.15); border-radius: 2px; padding: 4px 8px; margin-top: 6px; display: inline-block; font-style: italic; }
+        .tag-icon { border: 1px solid var(--retro-orange); padding: 0 5px; font-size: 10px; font-weight: bold; margin-right: 8px; text-transform: uppercase; }
+        
+        /* 扫描线动画 */
+        .scanline { width: 100%; height: 2px; background: rgba(255, 176, 0, 0.2); position: absolute; animation: scan 4s linear infinite; pointer-events: none; }
+        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
     </style>
 </head>
 <body class="p-4 md:p-8">
-    <div class="max-w-6xl mx-auto retro-border p-6 md:p-10 relative">
-        <a href="index.html" class="text-xs uppercase hover:underline"><< 返回总表</a>
+    <div class="max-w-6xl mx-auto retro-border p-6 md:p-10 relative overflow-hidden">
+        <div class="scanline"></div>
+        <a href="index.html" class="text-[10px] uppercase hover:underline tracking-widest"><< 返回总台 [BACK_TO_ROOT]</a>
         
         <header class="mt-8 mb-10 border-b-2 border-[#ffb000] pb-6 flex justify-between items-end">
             <div>
-                <h1 id="main-title" class="text-5xl font-bold italic uppercase tracking-tighter">--</h1>
-                <p id="main-info" class="text-sm mt-2 opacity-60">>> 战术简报就绪</p>
+                <h1 id="main-title" class="text-4xl font-bold uppercase tracking-widest italic">--</h1>
+                <p id="main-info" class="text-[10px] mt-2 opacity-60 font-bold uppercase tracking-widest">>> 正在同步实时数据流...</p>
             </div>
-            <div id="survival-guide" class="max-w-xs text-[10px] border-l border-[#ffb000] pl-4 italic opacity-80">
-                </div>
+            <div class="text-right">
+                <p class="text-[10px] font-bold">LOC_ID</p>
+                <p id="loc-num" class="text-3xl font-bold">00</p>
+            </div>
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
             <section>
-                <h2 class="text-lg underline mb-6 uppercase">>> 细分时间轴</h2>
-                <div class="flex gap-2 mb-8 text-sm">
-                    <input id="sub-time" type="text" placeholder="12:00" class="w-20">
+                <h2 class="text-sm font-bold mb-6 uppercase tracking-widest border-b border-[#ffb000]/30 w-fit">>> 详细行动序列</h2>
+                <div class="flex gap-2 mb-10">
+                    <input id="sub-time" type="text" placeholder="Time" class="w-20">
                     <input id="sub-place" type="text" placeholder="输入：高铁、酒店、爬山、吃饭..." class="flex-1">
-                    <button onclick="addSub()" class="bg-[#ffb000] text-black px-4 font-bold hover:invert">ENTRY</button>
+                    <button onclick="addSub()" class="bg-[#ffb000] text-black px-6 font-bold hover:bg-white transition-colors">ADD</button>
                 </div>
-                <div id="sub-list" class="space-y-4">
+                <div id="sub-list" class="space-y-6">
                     </div>
-            </aside>
+            </section>
 
             <section>
-                <h2 class="text-lg underline mb-6 uppercase">>> 动态坐标雷达</h2>
-                <div id="map-container" class="retro-border h-[450px] bg-black">
-                    <iframe id="map-iframe" width="100%" height="100%" frameborder="0" style="border:0" src="" allowfullscreen></iframe>
+                <h2 class="text-sm font-bold mb-6 uppercase tracking-widest border-b border-[#ffb000]/30 w-fit">>> 实时坐标匹配</h2>
+                <div id="map-container" class="retro-border h-[450px] bg-black relative overflow-hidden">
+                    <iframe id="map-iframe" width="100%" height="100%" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src=""></iframe>
+                    <div class="absolute top-2 right-2 bg-black/80 p-2 text-[8px] border border-[#ffb000]/40">RADAR_ACTIVE</div>
                 </div>
             </section>
         </div>
@@ -59,21 +69,20 @@
         const index = localStorage.getItem('current_trip_index');
         const trip = travelData[index];
 
-        // 智能分类与建议配置
         const config = {
             keywords: {
-                '高铁': { icon: '🚄', label: '交通', tip: '高铁建议提前30min到达站台。由于空调干燥，建议携带水。' },
-                '飞机': { icon: '✈️', label: '交通', tip: '飞行前确认航站楼。由于气压变化，建议携带口香糖。' },
-                '车': { icon: '🚗', label: '交通', tip: '长途乘车注意防晕车，每2小时休息一下。' },
-                '酒店': { icon: '🏨', label: '住宿', tip: '入住先检查猫眼和消防通道，自带洗漱用品更环保。' },
-                '住': { icon: '🏠', label: '住宿', tip: '确认退房时间，避免产生额外费用。' },
-                '爬山': { icon: '🏔️', label: '游玩', tip: '爬山务必穿着防滑鞋。带好防蚊喷雾和足够电解质水。' },
-                '海': { icon: '🌊', label: '游玩', tip: '注意涨潮时间，电子设备做好防水保护。' },
-                '玩': { icon: '🎡', label: '游玩', tip: '热门景点建议错峰排队，保护好随身财物。' },
-                '餐': { icon: '🍴', label: '补给', tip: '尝试当地特色前先确认肠胃耐受度，备好消食片。' },
-                '吃': { icon: '🍚', label: '补给', tip: '高峰期建议提前预约位子。' }
+                '高铁': { label: 'TRANSIT', icon: '🚄', tip: '建议提前30min到站，高铁站较大，预留检票步程。' },
+                '车': { label: 'TRANSIT', icon: '🚗', tip: '检查离线地图，确保电量/油量充足。' },
+                '机': { label: 'TRANSIT', icon: '✈️', tip: '确认航站楼信息，起飞前2小时到达。' },
+                '酒店': { label: 'LODGING', icon: '🏨', tip: '确认是否有一次性用品，提前联系前台保留房间。' },
+                '住': { label: 'LODGING', icon: '🏠', tip: '确认退房时间限制。' },
+                '爬山': { label: 'ACTION', icon: '🏔️', tip: '检查天气，备好护膝与速干衣物。' },
+                '徒步': { label: 'ACTION', icon: '🥾', tip: '轻量化负重，保持匀速，注意轨迹。' },
+                '玩': { label: 'ACTION', icon: '🎡', tip: '提前购票避免排队，留意闭园时间。' },
+                '餐': { label: 'SUPPLY', icon: '🍴', tip: '高峰期建议提前排号。' },
+                '吃': { label: 'SUPPLY', icon: '🍚', tip: '注意饮食卫生，备好肠胃药。' }
             },
-            default: { icon: '📍', label: '任务', tip: '保持通讯畅通，注意环境安全。' }
+            default: { label: 'TARGET', icon: '📍', tip: '到达目的地后确认环境安全，同步坐标。' }
         };
 
         function render() {
@@ -81,41 +90,31 @@
             const list = document.getElementById('sub-list');
             list.innerHTML = '';
             
-            let combinedTips = new Set();
-
             trip.sub_plans.forEach((p, i) => {
-                // 智能识别逻辑
                 let meta = config.default;
                 for (let key in config.keywords) {
-                    if (p.place.includes(key)) {
-                        meta = config.keywords[key];
-                        combinedTips.add(meta.tip);
-                        break;
-                    }
+                    if (p.place.includes(key)) { meta = config.keywords[key]; break; }
                 }
 
-                const row = document.createElement('div');
-                row.className = 'border-b border-[#ffb000]/20 pb-3 group';
-                row.innerHTML = `
-                    <div class="flex justify-between items-center">
+                const item = document.createElement('div');
+                item.className = 'plan-card p-4 relative group';
+                item.innerHTML = `
+                    <div class="flex justify-between items-start">
                         <div>
-                            <span class="opacity-40 text-xs">${p.time}</span>
-                            <span class="tag text-black bg-[#ffb000]">${meta.label}</span>
-                            <span class="font-bold">${meta.icon} ${p.place}</span>
+                            <div class="flex items-center">
+                                <span class="tag-icon">${meta.label}</span>
+                                <span class="text-xs font-bold opacity-50 mr-3">${p.time}</span>
+                                <span class="font-bold tracking-widest text-lg">${meta.icon} ${p.place}</span>
+                            </div>
+                            <div class="tip-box">
+                                <span class="mr-2">💡</span>RECOM: ${meta.tip}
+                            </div>
                         </div>
-                        <button onclick="delSub(${i})" class="text-[9px] opacity-0 group-hover:opacity-100 italic">ERASE</button>
+                        <button onclick="delSub(${i})" class="text-[9px] opacity-0 group-hover:opacity-100 hover:text-white transition-opacity">/ DELETE</button>
                     </div>
                 `;
-                list.appendChild(row);
+                list.appendChild(item);
             });
-
-            // 渲染智能建议
-            const guideBox = document.getElementById('survival-guide');
-            if(combinedTips.size > 0) {
-                guideBox.innerHTML = Array.from(combinedTips).map(t => `<div>* ${t}</div>`).join('');
-            } else {
-                guideBox.innerHTML = "* 暂无特殊生存警报。保持常规警惕。";
-            }
 
             document.getElementById('loc-num').innerText = trip.sub_plans.length.toString().padStart(2, '0');
             updateMap();
@@ -123,7 +122,7 @@
         }
 
         function addSub() {
-            const time = document.getElementById('sub-time').value || 'TBD';
+            const time = document.getElementById('sub-time').value || '--:--';
             const place = document.getElementById('sub-place').value;
             if (!place) return;
             trip.sub_plans.push({ time, place });
@@ -140,10 +139,14 @@
         function updateMap() {
             if (trip.sub_plans.length > 0) {
                 const latestPlace = trip.sub_plans[trip.sub_plans.length - 1].place;
-                const url = `https://www.google.com/maps/embed/v1/place?key=YOUR_API_KEY&q=${encodeURIComponent(latestPlace)}`;
-                // 这里暂时用一个不需要key的预览链接
-                const fallbackUrl = `https://maps.google.com/maps?q=${encodeURIComponent(latestPlace)}&t=&z=13&ie=UTF8&iwloc=&output=embed`;
-                document.getElementById('map-iframe').src = fallbackUrl;
+                // 使用 OpenStreetMap 的搜索预览界面，更稳定
+                const url = `https://www.openstreetmap.org/export/embed.html?bbox=0,0,0,0&layer=mapnik&q=${encodeURIComponent(latestPlace)}`;
+                // 备用：Nominatim 搜索
+                const searchUrl = `https://www.google.com/maps?q=${encodeURIComponent(latestPlace)}&output=embed`;
+                document.getElementById('map-iframe').src = searchUrl;
+            } else {
+                // 默认显示一个空坐标效果
+                document.getElementById('map-iframe').src = "about:blank";
             }
         }
 

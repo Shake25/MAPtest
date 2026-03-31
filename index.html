@@ -3,61 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Retro Travel OS | 终端主控</title>
+    <title>Retro Travel OS | 任务分级终端</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
         :root { --retro-orange: #ffb000; --retro-bg: #121212; }
         body { 
             background-color: var(--retro-bg); color: var(--retro-orange); 
             font-family: 'Courier Prime', monospace;
-            background-image: radial-gradient(circle, #1a1a1a 1px, transparent 1px);
-            background-size: 20px 20px;
+            background-image: linear-gradient(0deg, transparent 24%, rgba(255, 176, 0, .05) 25%, rgba(255, 176, 0, .05) 26%, transparent 27%, transparent 74%, rgba(255, 176, 0, .05) 75%, rgba(255, 176, 0, .05) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, rgba(255, 176, 0, .05) 25%, rgba(255, 176, 0, .05) 26%, transparent 27%, transparent 74%, rgba(255, 176, 0, .05) 75%, rgba(255, 176, 0, .05) 76%, transparent 77%, transparent);
+            background-size: 50px 50px;
         }
-        body::before {
-            content: " "; display: block; position: fixed; top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
-            z-index: 1000; background-size: 100% 4px; pointer-events: none;
-        }
-        .retro-border { border: 2px solid var(--retro-orange); box-shadow: 0 0 10px var(--retro-orange); }
+        .retro-border { border: 2px solid var(--retro-orange); box-shadow: 0 0 15px rgba(255, 176, 0, 0.2); }
         input, select { background: transparent !important; border: 1px solid var(--retro-orange) !important; color: var(--retro-orange) !important; outline: none; }
-        .btn-retro { background: var(--retro-orange); color: black; font-weight: bold; cursor: pointer; }
+        .btn-retro { background: var(--retro-orange); color: black; font-weight: bold; transition: all 0.3s; }
+        .btn-retro:hover { background: white; box-shadow: 0 0 20px white; }
     </style>
 </head>
 <body class="p-4 md:p-8">
-    <div class="max-w-5xl mx-auto retro-border p-6 md:p-10 relative">
-        <div class="absolute top-0 left-0 p-1 bg-[#ffb000] text-black text-[10px]">CORE_SYS: v5.0_LOGISTICS</div>
+    <div class="max-w-5xl mx-auto retro-border p-6 md:p-10 relative bg-[#121212]/90">
+        <div class="absolute top-0 left-0 p-1 bg-[#ffb000] text-black text-[10px] font-bold">SYSTEM_LOGISTICS_V6.0</div>
         
         <header class="mb-10 border-b-2 border-[#ffb000] pb-6 flex justify-between items-end">
             <div>
-                <h1 class="text-4xl font-bold tracking-widest uppercase italic">Travel Terminal</h1>
-                <p class="mt-2 text-xs opacity-70">>> 任务分级系统已就绪 / 请录入初始坐标</p>
+                <h1 class="text-4xl font-bold tracking-tighter uppercase italic">Mission Control</h1>
+                <p class="mt-2 text-[10px] opacity-70">>> 正在扫描全球地理坐标库...</p>
             </div>
-            <div id="stats" class="text-2xl">00_MISSIONS</div>
+            <div id="stats" class="text-2xl font-bold">00_FILES</div>
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
             <aside class="lg:col-span-4 space-y-6">
                 <div class="space-y-4">
                     <div>
-                        <label class="text-[10px] uppercase">[ 任务等级 ]</label>
-                        <select id="type" class="w-full mt-1 p-3 text-sm">
-                            <option value="INTER_PROVINCE">🌐 跨省远征</option>
-                            <option value="INTER_CITY">🛣️ 跨市移动</option>
-                            <option value="CROSS_BORDER">🛂 跨境任务</option>
-                            <option value="LOCAL">📍 同城行动</option>
+                        <label class="text-[10px] uppercase font-bold">[ 任务分级 ]</label>
+                        <select id="type" class="w-full mt-1 p-3 text-sm cursor-pointer">
+                            <option value="OVERSEAS">🛂 跨境任务 (Overseas)</option>
+                            <option value="INTER_PROVINCIAL">🌐 跨省远征 (Province)</option>
+                            <option value="INTER_CITY">🛣️ 跨市移动 (Inter-city)</option>
+                            <option value="LOCAL">📍 同城行动 (Local)</option>
                         </select>
                     </div>
                     <div>
-                        <label class="text-[10px] uppercase">[ 行程名称 ]</label>
-                        <input id="title" type="text" placeholder="目的地或项目名称..." class="w-full mt-1 p-3 text-sm">
+                        <label class="text-[10px] uppercase font-bold">[ 目标名称 ]</label>
+                        <input id="title" type="text" placeholder="Mission Name..." class="w-full mt-1 p-3 text-sm">
                     </div>
                     <div>
-                        <label class="text-[10px] uppercase">[ 部署日期 ]</label>
+                        <label class="text-[10px] uppercase font-bold">[ 部署日期 ]</label>
                         <input id="date" type="date" class="w-full mt-1 p-3 text-sm">
                     </div>
-                    <button onclick="saveItem()" class="w-full btn-retro p-4 text-sm mt-4 uppercase hover:invert">录入系统</button>
+                    <button onclick="saveItem()" class="w-full btn-retro p-4 text-sm mt-4 uppercase">接入数据库</button>
                 </div>
             </aside>
 
@@ -75,20 +70,20 @@
             container.innerHTML = '';
             travelData.forEach((item, index) => {
                 const card = document.createElement('div');
-                card.className = 'border border-[#ffb000] p-5 flex items-center group hover:bg-[#ffb000]/10 transition-all cursor-pointer';
+                card.className = 'border border-[#ffb000]/40 p-5 flex items-center group hover:border-[#ffb000] hover:bg-[#ffb000]/5 transition-all cursor-pointer relative overflow-hidden';
                 card.onclick = (e) => { if(e.target.tagName !== 'BUTTON') goToDetails(index); };
                 
                 card.innerHTML = `
-                    <div class="flex-1">
-                        <div class="text-[10px] opacity-60 uppercase">${item.type.replace('_', ' ')} | ${item.date}</div>
-                        <h3 class="text-xl font-bold mt-1 uppercase">${item.title}</h3>
-                        <p class="text-[9px] mt-1 opacity-50 italic">点击配置精确补给与路线规划 >></p>
+                    <div class="flex-1 z-10">
+                        <div class="text-[9px] opacity-60 uppercase tracking-widest">${item.type} // ${item.date}</div>
+                        <h3 class="text-xl font-bold mt-1 uppercase tracking-wider">${item.title}</h3>
                     </div>
-                    <button onclick="removeItem(event, ${index})" class="text-[10px] border border-[#ffb000] px-2 py-1 hover:bg-[#ffb000] hover:text-black">DROP</button>
+                    <button onclick="removeItem(event, ${index})" class="text-[10px] border border-[#ffb000]/40 px-2 py-1 hover:bg-red-600 hover:text-white hover:border-red-600 z-20">ERASE</button>
+                    <div class="absolute right-0 bottom-0 text-4xl opacity-5 font-bold italic select-none">${index + 1}</div>
                 `;
                 container.appendChild(card);
             });
-            document.getElementById('stats').innerText = travelData.length.toString().padStart(2, '0') + "_MISSION";
+            document.getElementById('stats').innerText = travelData.length.toString().padStart(2, '0') + "_FILES";
             localStorage.setItem('retro_travel_data', JSON.stringify(travelData));
         }
 
@@ -115,7 +110,6 @@
             localStorage.setItem('current_trip_index', index);
             window.location.href = 'details.html';
         }
-
         render();
     </script>
 </body>
