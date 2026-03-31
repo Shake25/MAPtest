@@ -3,91 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Retro Travel OS | 智能规划终端</title>
+    <title>Retro Travel OS | 终端主控</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
-
-        :root {
-            --retro-orange: #ffb000;
-            --retro-bg: #121212;
-        }
-
-        body {
-            background-color: var(--retro-bg);
-            color: var(--retro-orange);
+        :root { --retro-orange: #ffb000; --retro-bg: #121212; }
+        body { 
+            background-color: var(--retro-bg); color: var(--retro-orange); 
             font-family: 'Courier Prime', monospace;
             background-image: radial-gradient(circle, #1a1a1a 1px, transparent 1px);
             background-size: 20px 20px;
         }
-
-        /* 复古扫描线 */
         body::before {
-            content: " ";
-            display: block;
-            position: fixed;
-            top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
-                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
-            z-index: 100;
-            background-size: 100% 4px, 3px 100%;
-            pointer-events: none;
+            content: " "; display: block; position: fixed; top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
+            z-index: 1000; background-size: 100% 4px; pointer-events: none;
         }
-
-        input, select, textarea {
-            background: transparent !important;
-            border: 1px solid var(--retro-orange) !important;
-            color: var(--retro-orange) !important;
-            outline: none;
-        }
-
-        .btn-retro {
-            background: var(--retro-orange);
-            color: black;
-            font-weight: bold;
-            transition: all 0.2s;
-            cursor: pointer;
-        }
-
-        .btn-retro:hover {
-            box-shadow: 0 0 20px var(--retro-orange);
-            transform: translateY(-2px);
-        }
-
-        .type-label { border: 1px solid var(--retro-orange); padding: 2px 6px; font-size: 10px; }
-        
-        /* 拖拽时的样式 */
-        .sortable-ghost {
-            opacity: 0.4;
-            background: var(--retro-orange) !important;
-            color: black !important;
-        }
-
-        .sortable-drag {
-            cursor: grabbing;
-        }
-
-        /* 增加一个拖拽句柄提示 */
-        .drag-handle {
-            cursor: grab;
-            padding-right: 15px;
-            opacity: 0.5;
-        }
-        .drag-handle:active { cursor: grabbing; }
-
-        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .retro-border { border: 2px solid var(--retro-orange); box-shadow: 0 0 10px var(--retro-orange); }
+        input, select { background: transparent !important; border: 1px solid var(--retro-orange) !important; color: var(--retro-orange) !important; outline: none; }
+        .btn-retro { background: var(--retro-orange); color: black; font-weight: bold; cursor: pointer; }
+        .drag-handle { cursor: grab; padding-right: 15px; opacity: 0.5; }
+        .sortable-ghost { opacity: 0.3; background: var(--retro-orange); }
     </style>
 </head>
 <body class="p-4 md:p-8">
-
-    <div class="max-w-5xl mx-auto border-2 border-[#ffb000] p-6 md:p-10 relative">
-        <div class="absolute top-0 left-0 p-1 bg-[#ffb000] text-black text-[10px]">SYS: TRAVEL_v3.1_SORT_ENABLED</div>
+    <div class="max-w-5xl mx-auto retro-border p-6 md:p-10 relative">
+        <div class="absolute top-0 left-0 p-1 bg-[#ffb000] text-black text-[10px]">CORE_SYS: v4.0_STABLE</div>
         
-        <header class="mb-12 border-b-2 border-[#ffb000] pb-6 flex justify-between items-end">
+        <header class="mb-10 border-b-2 border-[#ffb000] pb-6 flex justify-between items-end">
             <div>
                 <h1 class="text-4xl font-bold tracking-widest uppercase italic">Travel Terminal</h1>
-                <p class="mt-2 text-sm opacity-70">>> 排序模式已激活 / 按住卡片即可自由调整顺序</p>
+                <p class="mt-2 text-xs opacity-70">>> 点击行程卡片进入“详细战术规划”模式</p>
             </div>
             <div id="stats" class="text-2xl">00_PLANS</div>
         </header>
@@ -96,136 +43,94 @@
             <aside class="lg:col-span-4 space-y-6">
                 <div class="space-y-4">
                     <div>
-                        <label class="text-xs uppercase">[ 类别 ]</label>
+                        <label class="text-[10px] uppercase">[ 任务类别 ]</label>
                         <select id="type" class="w-full mt-1 p-3 text-sm">
-                            <option value="spot">📍 景点 / 目的地</option>
-                            <option value="food">🍴 餐厅 / 补给</option>
-                            <option value="transport">✈️ 交通 / 移防</option>
+                            <option value="trip">🗺️ 跨城/大行程</option>
+                            <option value="spot">📍 单点/目的地</option>
+                            <option value="food">🍴 补给/餐厅</option>
                         </select>
                     </div>
-
                     <div>
-                        <label class="text-xs uppercase">[ 名称 ]</label>
-                        <input id="title" type="text" placeholder="爬山, 海边, 博物馆..." class="w-full mt-1 p-3 text-sm">
+                        <label class="text-[10px] uppercase">[ 行程名称 ]</label>
+                        <input id="title" type="text" placeholder="例如：香港三日游..." class="w-full mt-1 p-3 text-sm">
                     </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="text-xs uppercase">[ 日期 ]</label>
-                            <input id="date" type="date" class="w-full mt-1 p-3 text-sm">
-                        </div>
-                        <div>
-                            <label class="text-xs uppercase">[ 时间 ]</label>
-                            <input id="time" type="text" placeholder="14:00" class="w-full mt-1 p-3 text-sm">
-                        </div>
+                    <div>
+                        <label class="text-[10px] uppercase">[ 开始日期 ]</label>
+                        <input id="date" type="date" class="w-full mt-1 p-3 text-sm">
                     </div>
-
-                    <button onclick="saveItem()" class="w-full btn-retro p-4 text-sm mt-4 uppercase">
-                        执行计划录入
-                    </button>
+                    <button onclick="saveItem()" class="w-full btn-retro p-4 text-sm mt-4 uppercase hover:invert">录入系统</button>
                 </div>
             </aside>
 
             <main class="lg:col-span-8">
-                <div id="list-container" class="space-y-4 no-scrollbar max-h-[70vh] overflow-y-auto">
-                    </div>
+                <div id="list-container" class="space-y-4 max-h-[60vh] overflow-y-auto pr-2"></div>
             </main>
         </div>
     </div>
 
     <script>
-        const smartTips = {
-            "爬山": "记得准备驱蚊喷雾，带足饮用水。",
-            "海": "防晒霜是必需品，注意潮汐时间。",
-            "博物馆": "内部禁止闪光灯，保持安静。",
-            "飞机": "注意水分补充，长途建议携带U型枕。",
-            "森林": "严禁烟火，预防昆虫叮咬。"
-        };
-
         let travelData = JSON.parse(localStorage.getItem('retro_travel_data')) || [];
 
-        // 初始化拖拽功能
         const el = document.getElementById('list-container');
-        const sortable = Sortable.create(el, {
+        Sortable.create(el, {
             animation: 150,
+            handle: '.drag-handle',
             ghostClass: 'sortable-ghost',
-            dragClass: 'sortable-drag',
-            onEnd: function() {
-                // 拖拽结束，重新获取 DOM 顺序并保存
-                updateDataOrder();
+            onEnd: () => {
+                const newOrder = [];
+                document.querySelectorAll('#list-container > div').forEach(card => {
+                    newOrder.push(travelData[card.getAttribute('data-id')]);
+                });
+                travelData = newOrder;
+                render();
             }
         });
 
         function render() {
             const container = document.getElementById('list-container');
-            const stats = document.getElementById('stats');
             container.innerHTML = '';
-
-            // 注意：这里不再进行自动日期排序，以便保留用户手动拖动的顺序
             travelData.forEach((item, index) => {
                 const card = document.createElement('div');
-                // 给每个卡片绑定唯一标识 data-id
                 card.setAttribute('data-id', index);
-                card.className = 'border border-[#ffb000] p-5 relative group hover:bg-[#ffb000]/10 transition-all flex items-start';
+                card.className = 'border border-[#ffb000] p-5 flex items-center group hover:bg-[#ffb000]/10 transition-all cursor-pointer';
+                card.onclick = (e) => { if(e.target.tagName !== 'BUTTON') goToDetails(index); };
                 
-                let autoTip = "";
-                for (let key in smartTips) {
-                    if (item.title.includes(key)) {
-                        autoTip = `[ 智能建议 ]: ${smartTips[key]}`;
-                        break;
-                    }
-                }
-
                 card.innerHTML = `
                     <div class="drag-handle">::</div>
                     <div class="flex-1">
-                        <div class="flex items-center gap-3">
-                            <span class="type-label">${item.type.toUpperCase()}</span>
-                            <span class="text-xs opacity-60">${item.date} ${item.time}</span>
-                        </div>
-                        <h3 class="text-2xl font-bold mt-2">${item.title}</h3>
-                        ${autoTip ? `<p class="mt-2 text-[10px] border-l-2 border-[#ffb000] pl-3 italic opacity-80">${autoTip}</p>` : ''}
+                        <div class="text-[10px] opacity-60 uppercase">${item.type} | ${item.date}</div>
+                        <h3 class="text-xl font-bold mt-1 uppercase">${item.title}</h3>
+                        <p class="text-[9px] mt-2 italic">档案就绪 - 点击查看详细计划与地图 >></p>
                     </div>
-                    <button onclick="removeItem(${index})" class="text-[10px] border border-[#ffb000] px-2 hover:bg-[#ffb000] hover:text-black transition-colors">DEL</button>
+                    <button onclick="removeItem(${index})" class="text-[10px] border border-[#ffb000] px-2 py-1 hover:bg-[#ffb000] hover:text-black">DEL</button>
                 `;
                 container.appendChild(card);
             });
-
-            stats.innerText = travelData.length.toString().padStart(2, '0') + "_PLANS";
+            document.getElementById('stats').innerText = travelData.length.toString().padStart(2, '0') + "_PLANS";
             localStorage.setItem('retro_travel_data', JSON.stringify(travelData));
         }
 
-        // 核心逻辑：拖动后根据 DOM 顺序重新排布数据
-        function updateDataOrder() {
-            const newOrder = [];
-            const cards = document.querySelectorAll('#list-container > div');
-            
-            cards.forEach(card => {
-                const oldIndex = card.getAttribute('data-id');
-                newOrder.push(travelData[oldIndex]);
-            });
-
-            travelData = newOrder;
-            render(); // 重新渲染以更新 data-id 索引
-        }
-
         function saveItem() {
-            const data = {
+            const title = document.getElementById('title').value;
+            if (!title) return;
+            travelData.push({
                 type: document.getElementById('type').value,
-                title: document.getElementById('title').value,
+                title: title,
                 date: document.getElementById('date').value,
-                time: document.getElementById('time').value
-            };
-            if (!data.title) return;
-            travelData.push(data);
-            document.getElementById('title').value = '';
-            document.getElementById('time').value = '';
+                sub_plans: [] // 预留详情列表
+            });
             render();
+            document.getElementById('title').value = '';
         }
 
         function removeItem(index) {
             travelData.splice(index, 1);
             render();
+        }
+
+        function goToDetails(index) {
+            localStorage.setItem('current_trip_index', index);
+            window.location.href = 'details.html';
         }
 
         render();

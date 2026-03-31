@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Briefing | 详细战术规划</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
+        :root { --retro-orange: #ffb000; --retro-bg: #121212; }
+        body { background-color: var(--retro-bg); color: var(--retro-orange); font-family: 'Courier Prime', monospace; }
+        body::before {
+            content: " "; display: block; position: fixed; top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
+            z-index: 1000; background-size: 100% 4px; pointer-events: none;
+        }
+        .retro-border { border: 2px solid var(--retro-orange); }
+        input { background: transparent; border: 1px solid var(--retro-orange); color: var(--retro-orange); outline: none; padding: 8px; }
+        #map-container { filter: grayscale(1) invert(1) contrast(1.2) brightness(0.8); }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-6xl mx-auto retro-border p-6 md:p-10 relative">
+        <a href="index.html" class="text-xs uppercase hover:underline"><< 返回总控终端</a>
+        
+        <header class="mt-8 mb-10 border-b-2 border-[#ffb000] pb-6 flex justify-between items-end">
+            <div>
+                <h1 id="main-title" class="text-5xl font-bold italic uppercase tracking-tighter">--</h1>
+                <p id="main-info" class="text-sm mt-2 opacity-60 italic">>> 正在加载区域档案...</p>
+            </div>
+            <div class="text-right">
+                <p class="text-[10px]">LOC_COUNT</p>
+                <p id="loc-num" class="text-3xl">00</p>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            <section>
+                <h2 class="text-lg underline mb-6 uppercase">>> 细分时间轴</h2>
+                <div class="flex gap-2 mb-8">
+                    <input id="sub-time" type="text" placeholder="09:00" class="w-24">
+                    <input id="sub-place" type="text" placeholder="输入具体地点/餐厅" class="flex-1">
+                    <button onclick="addSub()" class="bg-[#ffb000] text-black px-4 font-bold hover:invert">录入</button>
+                </div>
+                <div id="sub-list" class="space-y-4">
+                    </div>
+            </section>
+
+            <section>
+                <h2 class="text-lg underline mb-6 uppercase">>> 区域雷达预览</h2>
+                <div id="map-container" class="retro-border h-[400px] bg-black overflow-hidden relative">
+                    <iframe id="map-iframe" width="100%" height="100%" frameborder="0" style="border:0" src="" allowfullscreen></iframe>
+                </div>
+                <p class="text-[9px] mt-2 opacity-40 italic text-right">* 基于最新录入的坐标自动校准</p>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        const travelData = JSON.parse(localStorage.getItem('retro_travel_data'));
+        const index = localStorage.getItem('current_trip_index');
+        const trip = travelData[index];
+
+        function render() {
+            document.getElementById('main-title').innerText = trip.title;
+            document.getElementById('main-info').innerText = `>> 档案日期: ${trip.date || '未设置'} // 状态: 已锁定`;
+            
+            const list = document.getElementById('sub-list');
+            list.innerHTML = '';
+            trip.sub_plans.forEach((p, i) => {
+                const row = document.createElement('div');
+                row.className = 'flex justify-between items-center border-b border-[#ffb000]/20 pb-2';
+                row.innerHTML = `
+                    <div class="text-sm">
+                        <span class="opacity-50 mr-4">${p.time}</span>
+                        <span class="font-bold uppercase tracking-widest">${p.place}</span>
+                    </div>
+                    <button onclick="delSub(${i})" class="text-[9px] opacity-40 hover:opacity-100">DROP</button>
+                `;
+                list.appendChild(row);
+            });
+
+            document.getElementById('loc-num').innerText = trip.sub_plans.length.toString().padStart(2, '0');
+            updateMap();
+            localStorage.setItem('retro_travel_data', JSON.stringify(travelData));
+        }
+
+        function addSub() {
+            const time = document.getElementById('sub-time').value;
+            const place = document.getElementById('sub-place').value;
+            if (!place) return;
+            trip.sub_plans.push({ time, place });
+            document.getElementById('sub-time').value = '';
+            document.getElementById('sub-place').value = '';
+            render();
+        }
+
+        function delSub(i) {
+            trip.sub_plans.splice(i, 1);
+            render();
+        }
+
+        function updateMap() {
+            if (trip.sub_plans.length > 0) {
+                const latestPlace = trip.sub_plans[trip.sub_plans.length - 1].place;
+                // 使用 Google 地图 Embed 接口
+                const url = `https://www.google.com/maps/embed/v1/place?key=YOUR_API_KEY_OPTIONAL&q=${encodeURIComponent(latestPlace)}`;
+                // 注意：如果没有 API Key，我们可以使用替代的预览链接
+                const fallbackUrl = `https://maps.google.com/maps?q=${encodeURIComponent(latestPlace)}&t=&z=13&ie=UTF8&iwloc=&output=embed`;
+                document.getElementById('map-iframe').src = fallbackUrl;
+            }
+        }
+
+        window.onload = render;
+    </script>
+</body>
+</html>
