@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Briefing | 详细战术规划</title>
+    <title>Briefing | 详细计划终端</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
@@ -17,41 +17,39 @@
         .retro-border { border: 2px solid var(--retro-orange); }
         input { background: transparent; border: 1px solid var(--retro-orange); color: var(--retro-orange); outline: none; padding: 8px; }
         #map-container { filter: grayscale(1) invert(1) contrast(1.2) brightness(0.8); }
+        .tag { border: 1px solid var(--retro-orange); padding: 1px 4px; font-size: 9px; margin-right: 5px; }
     </style>
 </head>
 <body class="p-4 md:p-8">
     <div class="max-w-6xl mx-auto retro-border p-6 md:p-10 relative">
-        <a href="index.html" class="text-xs uppercase hover:underline"><< 返回总控终端</a>
+        <a href="index.html" class="text-xs uppercase hover:underline"><< 返回总表</a>
         
         <header class="mt-8 mb-10 border-b-2 border-[#ffb000] pb-6 flex justify-between items-end">
             <div>
                 <h1 id="main-title" class="text-5xl font-bold italic uppercase tracking-tighter">--</h1>
-                <p id="main-info" class="text-sm mt-2 opacity-60 italic">>> 正在加载区域档案...</p>
+                <p id="main-info" class="text-sm mt-2 opacity-60">>> 战术简报就绪</p>
             </div>
-            <div class="text-right">
-                <p class="text-[10px]">LOC_COUNT</p>
-                <p id="loc-num" class="text-3xl">00</p>
-            </div>
+            <div id="survival-guide" class="max-w-xs text-[10px] border-l border-[#ffb000] pl-4 italic opacity-80">
+                </div>
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
             <section>
                 <h2 class="text-lg underline mb-6 uppercase">>> 细分时间轴</h2>
-                <div class="flex gap-2 mb-8">
-                    <input id="sub-time" type="text" placeholder="09:00" class="w-24">
-                    <input id="sub-place" type="text" placeholder="输入具体地点/餐厅" class="flex-1">
-                    <button onclick="addSub()" class="bg-[#ffb000] text-black px-4 font-bold hover:invert">录入</button>
+                <div class="flex gap-2 mb-8 text-sm">
+                    <input id="sub-time" type="text" placeholder="12:00" class="w-20">
+                    <input id="sub-place" type="text" placeholder="输入：高铁、酒店、爬山、吃饭..." class="flex-1">
+                    <button onclick="addSub()" class="bg-[#ffb000] text-black px-4 font-bold hover:invert">ENTRY</button>
                 </div>
                 <div id="sub-list" class="space-y-4">
                     </div>
-            </section>
+            </aside>
 
             <section>
-                <h2 class="text-lg underline mb-6 uppercase">>> 区域雷达预览</h2>
-                <div id="map-container" class="retro-border h-[400px] bg-black overflow-hidden relative">
+                <h2 class="text-lg underline mb-6 uppercase">>> 动态坐标雷达</h2>
+                <div id="map-container" class="retro-border h-[450px] bg-black">
                     <iframe id="map-iframe" width="100%" height="100%" frameborder="0" style="border:0" src="" allowfullscreen></iframe>
                 </div>
-                <p class="text-[9px] mt-2 opacity-40 italic text-right">* 基于最新录入的坐标自动校准</p>
             </section>
         </div>
     </div>
@@ -61,24 +59,63 @@
         const index = localStorage.getItem('current_trip_index');
         const trip = travelData[index];
 
+        // 智能分类与建议配置
+        const config = {
+            keywords: {
+                '高铁': { icon: '🚄', label: '交通', tip: '高铁建议提前30min到达站台。由于空调干燥，建议携带水。' },
+                '飞机': { icon: '✈️', label: '交通', tip: '飞行前确认航站楼。由于气压变化，建议携带口香糖。' },
+                '车': { icon: '🚗', label: '交通', tip: '长途乘车注意防晕车，每2小时休息一下。' },
+                '酒店': { icon: '🏨', label: '住宿', tip: '入住先检查猫眼和消防通道，自带洗漱用品更环保。' },
+                '住': { icon: '🏠', label: '住宿', tip: '确认退房时间，避免产生额外费用。' },
+                '爬山': { icon: '🏔️', label: '游玩', tip: '爬山务必穿着防滑鞋。带好防蚊喷雾和足够电解质水。' },
+                '海': { icon: '🌊', label: '游玩', tip: '注意涨潮时间，电子设备做好防水保护。' },
+                '玩': { icon: '🎡', label: '游玩', tip: '热门景点建议错峰排队，保护好随身财物。' },
+                '餐': { icon: '🍴', label: '补给', tip: '尝试当地特色前先确认肠胃耐受度，备好消食片。' },
+                '吃': { icon: '🍚', label: '补给', tip: '高峰期建议提前预约位子。' }
+            },
+            default: { icon: '📍', label: '任务', tip: '保持通讯畅通，注意环境安全。' }
+        };
+
         function render() {
             document.getElementById('main-title').innerText = trip.title;
-            document.getElementById('main-info').innerText = `>> 档案日期: ${trip.date || '未设置'} // 状态: 已锁定`;
-            
             const list = document.getElementById('sub-list');
             list.innerHTML = '';
+            
+            let combinedTips = new Set();
+
             trip.sub_plans.forEach((p, i) => {
+                // 智能识别逻辑
+                let meta = config.default;
+                for (let key in config.keywords) {
+                    if (p.place.includes(key)) {
+                        meta = config.keywords[key];
+                        combinedTips.add(meta.tip);
+                        break;
+                    }
+                }
+
                 const row = document.createElement('div');
-                row.className = 'flex justify-between items-center border-b border-[#ffb000]/20 pb-2';
+                row.className = 'border-b border-[#ffb000]/20 pb-3 group';
                 row.innerHTML = `
-                    <div class="text-sm">
-                        <span class="opacity-50 mr-4">${p.time}</span>
-                        <span class="font-bold uppercase tracking-widest">${p.place}</span>
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <span class="opacity-40 text-xs">${p.time}</span>
+                            <span class="tag text-black bg-[#ffb000]">${meta.label}</span>
+                            <span class="font-bold">${meta.icon} ${p.place}</span>
+                        </div>
+                        <button onclick="delSub(${i})" class="text-[9px] opacity-0 group-hover:opacity-100 italic">ERASE</button>
                     </div>
-                    <button onclick="delSub(${i})" class="text-[9px] opacity-40 hover:opacity-100">DROP</button>
                 `;
                 list.appendChild(row);
             });
+
+            // 渲染智能建议
+            const guideBox = document.getElementById('survival-guide');
+            if(combinedTips.size > 0) {
+                guideBox.innerHTML = Array.from(combinedTips).map(t => `<div>* ${t}</div>`).join('');
+            } else {
+                guideBox.innerHTML = "* 暂无特殊生存警报。保持常规警惕。";
+            }
 
             document.getElementById('loc-num').innerText = trip.sub_plans.length.toString().padStart(2, '0');
             updateMap();
@@ -86,7 +123,7 @@
         }
 
         function addSub() {
-            const time = document.getElementById('sub-time').value;
+            const time = document.getElementById('sub-time').value || 'TBD';
             const place = document.getElementById('sub-place').value;
             if (!place) return;
             trip.sub_plans.push({ time, place });
@@ -103,9 +140,8 @@
         function updateMap() {
             if (trip.sub_plans.length > 0) {
                 const latestPlace = trip.sub_plans[trip.sub_plans.length - 1].place;
-                // 使用 Google 地图 Embed 接口
-                const url = `https://www.google.com/maps/embed/v1/place?key=YOUR_API_KEY_OPTIONAL&q=${encodeURIComponent(latestPlace)}`;
-                // 注意：如果没有 API Key，我们可以使用替代的预览链接
+                const url = `https://www.google.com/maps/embed/v1/place?key=YOUR_API_KEY&q=${encodeURIComponent(latestPlace)}`;
+                // 这里暂时用一个不需要key的预览链接
                 const fallbackUrl = `https://maps.google.com/maps?q=${encodeURIComponent(latestPlace)}&t=&z=13&ie=UTF8&iwloc=&output=embed`;
                 document.getElementById('map-iframe').src = fallbackUrl;
             }

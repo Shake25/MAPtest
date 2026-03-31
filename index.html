@@ -23,39 +23,38 @@
         .retro-border { border: 2px solid var(--retro-orange); box-shadow: 0 0 10px var(--retro-orange); }
         input, select { background: transparent !important; border: 1px solid var(--retro-orange) !important; color: var(--retro-orange) !important; outline: none; }
         .btn-retro { background: var(--retro-orange); color: black; font-weight: bold; cursor: pointer; }
-        .drag-handle { cursor: grab; padding-right: 15px; opacity: 0.5; }
-        .sortable-ghost { opacity: 0.3; background: var(--retro-orange); }
     </style>
 </head>
 <body class="p-4 md:p-8">
     <div class="max-w-5xl mx-auto retro-border p-6 md:p-10 relative">
-        <div class="absolute top-0 left-0 p-1 bg-[#ffb000] text-black text-[10px]">CORE_SYS: v4.0_STABLE</div>
+        <div class="absolute top-0 left-0 p-1 bg-[#ffb000] text-black text-[10px]">CORE_SYS: v5.0_LOGISTICS</div>
         
         <header class="mb-10 border-b-2 border-[#ffb000] pb-6 flex justify-between items-end">
             <div>
                 <h1 class="text-4xl font-bold tracking-widest uppercase italic">Travel Terminal</h1>
-                <p class="mt-2 text-xs opacity-70">>> 点击行程卡片进入“详细战术规划”模式</p>
+                <p class="mt-2 text-xs opacity-70">>> 任务分级系统已就绪 / 请录入初始坐标</p>
             </div>
-            <div id="stats" class="text-2xl">00_PLANS</div>
+            <div id="stats" class="text-2xl">00_MISSIONS</div>
         </header>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
             <aside class="lg:col-span-4 space-y-6">
                 <div class="space-y-4">
                     <div>
-                        <label class="text-[10px] uppercase">[ 任务类别 ]</label>
+                        <label class="text-[10px] uppercase">[ 任务等级 ]</label>
                         <select id="type" class="w-full mt-1 p-3 text-sm">
-                            <option value="trip">🗺️ 跨城/大行程</option>
-                            <option value="spot">📍 单点/目的地</option>
-                            <option value="food">🍴 补给/餐厅</option>
+                            <option value="INTER_PROVINCE">🌐 跨省远征</option>
+                            <option value="INTER_CITY">🛣️ 跨市移动</option>
+                            <option value="CROSS_BORDER">🛂 跨境任务</option>
+                            <option value="LOCAL">📍 同城行动</option>
                         </select>
                     </div>
                     <div>
                         <label class="text-[10px] uppercase">[ 行程名称 ]</label>
-                        <input id="title" type="text" placeholder="例如：香港三日游..." class="w-full mt-1 p-3 text-sm">
+                        <input id="title" type="text" placeholder="目的地或项目名称..." class="w-full mt-1 p-3 text-sm">
                     </div>
                     <div>
-                        <label class="text-[10px] uppercase">[ 开始日期 ]</label>
+                        <label class="text-[10px] uppercase">[ 部署日期 ]</label>
                         <input id="date" type="date" class="w-full mt-1 p-3 text-sm">
                     </div>
                     <button onclick="saveItem()" class="w-full btn-retro p-4 text-sm mt-4 uppercase hover:invert">录入系统</button>
@@ -71,42 +70,25 @@
     <script>
         let travelData = JSON.parse(localStorage.getItem('retro_travel_data')) || [];
 
-        const el = document.getElementById('list-container');
-        Sortable.create(el, {
-            animation: 150,
-            handle: '.drag-handle',
-            ghostClass: 'sortable-ghost',
-            onEnd: () => {
-                const newOrder = [];
-                document.querySelectorAll('#list-container > div').forEach(card => {
-                    newOrder.push(travelData[card.getAttribute('data-id')]);
-                });
-                travelData = newOrder;
-                render();
-            }
-        });
-
         function render() {
             const container = document.getElementById('list-container');
             container.innerHTML = '';
             travelData.forEach((item, index) => {
                 const card = document.createElement('div');
-                card.setAttribute('data-id', index);
                 card.className = 'border border-[#ffb000] p-5 flex items-center group hover:bg-[#ffb000]/10 transition-all cursor-pointer';
                 card.onclick = (e) => { if(e.target.tagName !== 'BUTTON') goToDetails(index); };
                 
                 card.innerHTML = `
-                    <div class="drag-handle">::</div>
                     <div class="flex-1">
-                        <div class="text-[10px] opacity-60 uppercase">${item.type} | ${item.date}</div>
+                        <div class="text-[10px] opacity-60 uppercase">${item.type.replace('_', ' ')} | ${item.date}</div>
                         <h3 class="text-xl font-bold mt-1 uppercase">${item.title}</h3>
-                        <p class="text-[9px] mt-2 italic">档案就绪 - 点击查看详细计划与地图 >></p>
+                        <p class="text-[9px] mt-1 opacity-50 italic">点击配置精确补给与路线规划 >></p>
                     </div>
-                    <button onclick="removeItem(${index})" class="text-[10px] border border-[#ffb000] px-2 py-1 hover:bg-[#ffb000] hover:text-black">DEL</button>
+                    <button onclick="removeItem(event, ${index})" class="text-[10px] border border-[#ffb000] px-2 py-1 hover:bg-[#ffb000] hover:text-black">DROP</button>
                 `;
                 container.appendChild(card);
             });
-            document.getElementById('stats').innerText = travelData.length.toString().padStart(2, '0') + "_PLANS";
+            document.getElementById('stats').innerText = travelData.length.toString().padStart(2, '0') + "_MISSION";
             localStorage.setItem('retro_travel_data', JSON.stringify(travelData));
         }
 
@@ -117,13 +99,14 @@
                 type: document.getElementById('type').value,
                 title: title,
                 date: document.getElementById('date').value,
-                sub_plans: [] // 预留详情列表
+                sub_plans: []
             });
             render();
             document.getElementById('title').value = '';
         }
 
-        function removeItem(index) {
+        function removeItem(e, index) {
+            e.stopPropagation();
             travelData.splice(index, 1);
             render();
         }
