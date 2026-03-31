@@ -3,168 +3,144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tactical Map | 实时路径终端</title>
+    <title>MovingData | 轨迹动态分析终端</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-    <script type="text/javascript">
-        window._AMapSecurityConfig = { securityJsCode: '7a97262f3a61f2f8149e29a997d91d9e' };
-    </script>
-    <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=ee95e5270a22f927ae5732dd8515647c&plugin=AMap.Driving,AMap.Geocoder"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-ant-path@1.3.0/dist/leaflet-ant-path.js"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
-        :root { --retro-orange: #ffb000; --retro-bg: #121212; }
-        body { background-color: var(--retro-bg); color: var(--retro-orange); font-family: 'Courier Prime', monospace; }
-        .retro-border { border: 1px solid var(--retro-orange); }
+        :root { --retro-orange: #ffb000; --retro-bg: #0d0d0d; }
+        body { background-color: var(--retro-bg); color: var(--retro-orange); font-family: 'Courier Prime', monospace; margin: 0; }
         
-        /* 地图黑金滤镜：让地图适配 UI 风格 */
-        #container { width: 100%; height: 100%; filter: invert(90%) hue-rotate(180deg) brightness(0.6) contrast(1.3); }
-        .amap-logo, .amap-copyright { display: none !important; }
+        /* 地图容器样式 */
+        .map-frame { height: 380px; border: 1px solid var(--retro-orange); position: relative; background: #000; }
+        #map { width: 100%; height: 100%; }
 
-        input { background: rgba(0,0,0,0.5); border: 1px solid var(--retro-orange); color: var(--retro-orange); outline: none; padding: 12px; border-radius: 0; }
-        .plan-card { border-left: 4px solid var(--retro-orange); background: rgba(255,176,0,0.03); margin-bottom: 10px; }
-        .drag-handle { cursor: grab; padding: 0 10px; background: rgba(255,176,0,0.1); display: flex; align-items: center; }
+        /* 赛博朋克滤镜：让开源地图呈现 MovingPandas 的专业质感 */
+        .leaflet-tile-container { filter: invert(100%) hue-rotate(170deg) brightness(0.5) contrast(1.2); }
+        .leaflet-container { background: #000 !important; }
+        
+        input { background: rgba(255,176,0,0.05); border: 1px solid var(--retro-orange); color: var(--retro-orange); outline: none; padding: 12px; font-size: 14px; }
+        .data-card { border-left: 3px solid var(--retro-orange); background: rgba(255,176,0,0.03); margin-bottom: 8px; padding: 10px; font-size: 12px; }
+        .btn-update { background: var(--retro-orange); color: #000; font-weight: bold; transition: all 0.2s; }
+        .btn-update:active { transform: scale(0.95); opacity: 0.8; }
     </style>
 </head>
-<body class="p-3">
-    <div class="max-w-6xl mx-auto retro-border p-4 relative bg-[#121212] min-h-[95vh] flex flex-col">
-        <header class="mb-4 border-b border-[#ffb000] pb-2 flex justify-between items-end">
+<body class="p-4">
+    <div class="max-w-5xl mx-auto">
+        <header class="mb-4 flex justify-between items-end border-b border-[#ffb000] pb-2">
             <div>
-                <h1 id="main-title" class="text-xl font-bold uppercase italic italic tracking-tighter">--</h1>
-                <p class="text-[9px] opacity-60">>> 路径规划引擎已就绪 [NAV_SYSTEM_v2.0]</p>
+                <h1 class="text-xl font-bold tracking-widest uppercase">MovingData Terminal</h1>
+                <p class="text-[9px] opacity-50">>> 基于开源 Trajectory 算法驱动</p>
             </div>
-            <p id="loc-num" class="text-xl font-bold">00</p>
+            <div id="status-tag" class="text-[10px] animate-pulse text-green-500">SYSTEM_READY</div>
         </header>
 
-        <div class="retro-border h-[300px] md:h-[450px] mb-6 relative bg-black overflow-hidden">
-            <div id="container"></div>
+        <div class="map-frame mb-6 shadow-[0_0_20px_rgba(255,176,0,0.1)]">
+            <div id="map"></div>
         </div>
 
-        <div class="flex flex-col gap-3 mb-6">
+        <div class="grid grid-cols-1 gap-4 mb-8">
             <div class="flex gap-2">
-                <input id="sub-time" type="text" placeholder="12:00" class="w-24 text-center">
-                <input id="sub-place" type="text" placeholder="输入地点（如：香港西九龙）" class="flex-1">
+                <input id="input-place" type="text" placeholder="输入地点 (例: 深圳北站)" class="flex-1">
+                <button onclick="processTrajectory()" class="btn-update px-6 py-3 uppercase text-xs">部署轨迹节点</button>
             </div>
-            <button onclick="addSub()" class="bg-[#ffb000] text-black py-4 font-bold text-xs uppercase active:scale-95 transition-all">部署坐标并同步路径</button>
         </div>
 
-        <div id="sub-list" class="flex-1 overflow-y-auto"></div>
-        
-        <a href="index.html" class="block text-center text-[10px] py-4 border border-[#ffb000]/20 mt-4 uppercase tracking-[0.2em]">返回主控台</a>
+        <div id="trajectory-log" class="space-y-2">
+            <div class="opacity-30 text-[10px] italic">等待原始地理数据注入...</div>
+        </div>
     </div>
 
     <script>
-        let travelData = JSON.parse(localStorage.getItem('retro_travel_data')) || [];
-        let index = localStorage.getItem('current_trip_index');
-        let trip = travelData[index];
-        let map, driving;
+        let map, antPath, markers = [];
+        let trajectoryCoords = [];
 
-        // 初始化高德地图
-        function initAMap() {
-            map = new AMap.Map('container', {
-                zoom: 12,
-                center: [114.1694, 22.3193], // 默认香港
-                viewMode: '3D',
-                mapStyle: 'amap://styles/dark' // 使用深色主题
-            });
+        // 1. 初始化开源地图引擎
+        function initEngine() {
+            // 设置初始视角为中国中心
+            map = L.map('map', { zoomControl: false }).setView([30.0, 105.0], 4);
 
-            // 初始化路线规划插件
-            driving = new AMap.Driving({
-                map: map,
-                panel: false, // 不显示文字面板
-                hideMarkers: false // 显示起点终点图标
-            });
+            // 使用高德地图瓦片 (国内直连最稳方案)
+            L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
+                subdomains: ["1", "2", "3", "4"]
+            }).addTo(map);
+
+            // 初始化动态轨迹线 (MovingPandas 风格)
+            antPath = L.polyline.antPath([], {
+                "paused": false, "reverse": false, "delay": 2000, "dashArray": [10, 20],
+                "weight": 3, "color": "#ffb000", "pulseColor": "#ffffff"
+            }).addTo(map);
         }
 
-        function render() {
-            if (!trip) return;
-            document.getElementById('main-title').innerText = trip.title;
-            const list = document.getElementById('sub-list');
-            list.innerHTML = '';
-            
-            if (!trip.sub_plans) trip.sub_plans = [];
+        // 2. 核心：处理并渲染轨迹
+        async function processTrajectory() {
+            const placeInput = document.getElementById('input-place');
+            const placeName = placeInput.value.trim();
+            if (!placeName) return;
 
-            trip.sub_plans.forEach((p, i) => {
-                const item = document.createElement('div');
-                item.className = 'plan-card flex';
-                item.innerHTML = `
-                    <div class="drag-handle">::</div>
-                    <div class="flex-1 p-3 flex justify-between items-center">
-                        <div>
-                            <span class="text-[10px] opacity-40 mr-2">${p.time}</span>
-                            <span class="font-bold text-sm uppercase">${p.place}</span>
-                        </div>
-                        <button onclick="delSub(${i})" class="text-[10px] opacity-30">ERASE</button>
-                    </div>
-                `;
-                list.appendChild(item);
-            });
+            document.getElementById('status-tag').innerText = "CALCULATING...";
 
-            document.getElementById('loc-num').innerText = trip.sub_plans.length.toString().padStart(2, '0');
-            calculateRoute(); // 渲染后自动重绘路线
-            localStorage.setItem('retro_travel_data', JSON.stringify(travelData));
-        }
+            try {
+                // 使用公共地理编码接口解析地址
+                const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(placeName)}`);
+                const data = await response.json();
 
-        // 核心功能：自动计算路径
-        function calculateRoute() {
-            if (!driving || trip.sub_plans.length < 1) return;
+                if (data && data.length > 0) {
+                    const lat = parseFloat(data[0].lat);
+                    const lon = parseFloat(data[0].lon);
+                    const newCoord = [lat, lon];
 
-            // 清除旧路径
-            driving.clear();
+                    // 更新轨迹数据
+                    trajectoryCoords.push(newCoord);
+                    
+                    // 添加地图标记
+                    const marker = L.circleMarker(newCoord, {
+                        radius: 5, color: '#ffb000', fillColor: '#ffb000', fillOpacity: 1
+                    }).addTo(map).bindPopup(`节点: ${placeName}`).openPopup();
+                    markers.push(marker);
 
-            const points = trip.sub_plans.map(p => p.place);
+                    // 更新动态轨迹线
+                    antPath.setLatLngs(trajectoryCoords);
 
-            if (points.length === 1) {
-                // 只有一个地址时，仅做地理编码显示位置
-                const geocoder = new AMap.Geocoder();
-                geocoder.getLocation(points[0], (status, result) => {
-                    if (status === 'complete' && result.geocodes.length) {
-                        const loc = result.geocodes[0].location;
-                        map.setZoomAndCenter(14, loc);
-                        new AMap.Marker({ position: loc, map: map });
-                    }
-                });
-            } else if (points.length >= 2) {
-                // 两个及以上地址，开始规划路线
-                const start = points[0];
-                const end = points[points.length - 1];
-                const waypoints = points.slice(1, -1); // 中途经过的地点
+                    // 自动调整地图视野
+                    map.fitBounds(antPath.getBounds(), { padding: [50, 50] });
 
-                driving.search(
-                    [{ keyword: start }, ...waypoints.map(w => ({ keyword: w })), { keyword: end }],
-                    function(status, result) {
-                        if (status !== 'complete') {
-                            console.error('路径规划失败:', result);
-                        }
-                    }
-                );
+                    // 更新侧边栏日志
+                    updateLog(placeName, lat, lon);
+                    
+                    placeInput.value = "";
+                    document.getElementById('status-tag').innerText = "DATA_SYNCED";
+                } else {
+                    alert("无法定位该地址，请尝试输入更具体的名称。");
+                    document.getElementById('status-tag').innerText = "ADDR_ERROR";
+                }
+            } catch (error) {
+                console.error("轨迹处理失败", error);
+                document.getElementById('status-tag').innerText = "ENGINE_OFFLINE";
             }
         }
 
-        function addSub() {
-            const time = document.getElementById('sub-time').value || '--:--';
-            const place = document.getElementById('sub-place').value;
-            if (!place) return;
-            trip.sub_plans.push({ time, place });
-            document.getElementById('sub-place').value = '';
-            render();
+        function updateLog(name, lat, lon) {
+            const log = document.getElementById('trajectory-log');
+            if (trajectoryCoords.length === 1) log.innerHTML = "";
+            
+            const entry = document.createElement('div');
+            entry.className = "data-card animate-fade-in";
+            entry.innerHTML = `
+                <div class="flex justify-between">
+                    <span class="font-bold uppercase">POINT_${trajectoryCoords.length}</span>
+                    <span class="opacity-50">${new Date().toLocaleTimeString()}</span>
+                </div>
+                <div class="mt-1 text-[10px]">LOC: ${name}</div>
+                <div class="text-[9px] opacity-40">COORDS: ${lat.toFixed(4)}N, ${lon.toFixed(4)}E</div>
+            `;
+            log.prepend(entry);
         }
 
-        function delSub(i) {
-            trip.sub_plans.splice(i, 1);
-            render();
-        }
-
-        window.onload = () => {
-            initAMap();
-            render();
-        };
-
-        // 绑定拖拽排序逻辑（略，可直接复用之前的 SortableJS 配置）
-        Sortable.create(document.getElementById('sub-list'), {
-            handle: '.drag-handle',
-            animation: 150,
-            onEnd: render // 排序结束后重新渲染并绘图
-        });
+        window.onload = initEngine;
     </script>
 </body>
 </html>
