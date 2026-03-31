@@ -19,7 +19,6 @@
         :root { --retro-orange: #ffb000; --retro-bg: #0a0a0a; }
         body { background-color: var(--retro-bg); color: var(--retro-orange); font-family: 'Courier Prime', monospace; margin: 0; overflow-x: hidden; }
         
-        /* 终端网格背景 */
         body::before {
             content: ""; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background-image: linear-gradient(rgba(255, 176, 0, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 176, 0, 0.05) 1px, transparent 1px);
@@ -29,18 +28,19 @@
         .map-frame { height: 100%; min-height: 400px; border: 1px solid var(--retro-orange); background: #000; position: relative; }
         #map { width: 100%; height: 100%; }
         
-        /* 深度任务卡片设计 */
         .plan-card { background: rgba(255, 176, 0, 0.02); border: 1px solid rgba(255, 176, 0, 0.1); margin-bottom: 12px; transition: all 0.3s; position: relative; }
-        .plan-card:hover { border-color: var(--retro-orange); background: rgba(255, 176, 0, 0.05); }
         .drag-handle { cursor: grab; padding: 0 10px; display: flex; align-items: center; background: rgba(255, 176, 0, 0.05); color: var(--retro-orange); opacity: 0.5; border-right: 1px solid rgba(255,176,0,0.1); }
         
         .cat-tag { font-size: 9px; padding: 2px 6px; background: rgba(255, 176, 0, 0.1); border: 1px solid var(--retro-orange); color: var(--retro-orange); font-weight: bold; letter-spacing: 1px; }
         input { background: rgba(0,0,0,0.8); border: 1px solid var(--retro-orange); color: var(--retro-orange); outline: none; padding: 10px; font-size: 14px; }
         
-        /* 隐藏高德默认UI */
         .amap-logo, .amap-copyright { display: none !important; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: var(--retro-orange); }
+
+        /* 新增返回按钮样式 */
+        .back-btn { border: 1px solid var(--retro-orange); padding: 4px 12px; font-size: 12px; cursor: pointer; transition: 0.3s; }
+        .back-btn:hover { background: var(--retro-orange); color: black; }
     </style>
 </head>
 <body class="p-4 lg:p-8">
@@ -48,9 +48,12 @@
         
         <header class="mb-8 border-b-2 border-[#ffb000] pb-4 flex justify-between items-end">
             <div>
-                <div class="text-[10px] bg-[#ffb000] text-black px-2 inline-block font-bold mb-2">M-SYS_LOGISTICS_V8.8_PRO</div>
+                <div class="flex items-center gap-4 mb-2">
+                    <div class="text-[10px] bg-[#ffb000] text-black px-2 inline-block font-bold">M-SYS_LOGISTICS_V8.9_STABLE</div>
+                    <a href="index.html" class="back-btn"><< RETURN_TO_INDEX</a>
+                </div>
                 <h1 class="text-4xl lg:text-5xl font-black italic tracking-tighter uppercase">Mission Control</h1>
-                <p class="text-xs opacity-60 mt-1">>> MOMORECOM 深度解析引擎 [数据已持久化本地存储]</p>
+                <p class="text-xs opacity-60 mt-1">>> 当前任务序列已同步至内核加密区</p>
             </div>
             <div class="text-right">
                 <span class="text-[10px] opacity-50 uppercase">Target_Count</span><br>
@@ -62,13 +65,13 @@
             <div class="lg:col-span-6 flex flex-col h-full">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-sm font-bold uppercase tracking-[0.2em]">[ 战术任务流 ]</h2>
-                    <div class="status-bar text-[10px] opacity-70" id="sys-status">【系统状态】：在线 | 存储正常</div>
+                    <div class="status-bar text-[10px] opacity-70" id="sys-status">【系统状态】：在线 | 自动保存已激活</div>
                 </div>
 
                 <div class="flex gap-2 mb-6">
                     <input id="sub-time" type="text" placeholder="HH:MM" class="w-20 text-center">
-                    <input id="sub-place" type="text" placeholder="输入坐标 (如: 太平山顶、红茶餐厅)" class="flex-1">
-                    <button onclick="addSub()" class="bg-[#ffb000] text-black px-6 font-bold text-xs uppercase hover:invert transition-all">部署</button>
+                    <input id="sub-place" type="text" placeholder="输入坐标 (如: 太平山顶)" class="flex-1">
+                    <button onclick="addSub()" class="bg-[#ffb000] text-black px-6 font-bold text-xs uppercase hover:invert">部署</button>
                 </div>
 
                 <div id="sub-list" class="flex-1 overflow-y-auto space-y-4 pr-2"></div>
@@ -80,29 +83,29 @@
                     <div id="map"></div>
                 </div>
                 <button onclick="resetData()" class="block w-full text-center text-[10px] py-4 border border-red-900/50 mt-4 uppercase tracking-[0.5em] hover:bg-red-900/20 text-red-500">
-                    << RESET_DATABASE_SYSTEM
+                    << PURGE_CURRENT_SEQUENCE
                 </button>
             </div>
         </div>
     </div>
 
     <script>
-        // 1. 深度指令知识库
         const INTEL_DB = {
             '站': { icon: '🚄', cat: 'TRANSIT', task: '执行跨境/城际位移', action: '前往出发层，执行安检，确认行李存储，预留30分钟通关时间。' },
             '餐厅': { icon: '🍽️', cat: 'FOOD', task: '能量补给', action: '必点特色菜品，确认翻台速度，避开高峰期。' },
-            '山': { icon: '⛰️', cat: 'PLAY', task: '环境探索', action: '乘坐缆车/巴士抵达，在观景台执行全景扫描。', directive: '确认能见度，如低于5公里则启用Plan B。' },
-            '酒店': { icon: '🏨', cat: 'LODGING', task: '战术休整', action: '办理入住，确认WiFi通信链路及周边安全出口。' },
-            '广场': { icon: '🛍️', cat: 'SHOPPING', task: '物资采购', action: '比对汇率价格，执行采购清单，记录退税点位。' }
+            '山': { icon: '⛰️', cat: 'PLAY', task: '环境探索', action: '乘坐缆车/巴士抵达，在观景台执行全景扫描。' },
+            '酒店': { icon: '🏨', cat: 'LODGING', task: '战术休整', action: '办理入住，确认周边安全出口。' }
         };
 
         let map, geocoder, polyline, markers = [];
 
-        // 2. 数据持久化：从本地读取
-        let travelData = JSON.parse(localStorage.getItem('m_control_save')) || [
-            { time: "07:30", place: "深圳北站" },
-            { time: "09:00", place: "红茶餐厅" }
-        ];
+        // 核心：根据 URL 参数区分不同的行程保存
+        const urlParams = new URLSearchParams(window.location.search);
+        const tripId = urlParams.get('id') || 'default_trip'; 
+        const storageKey = `m_control_save_${tripId}`;
+
+        // 2. 加载本地数据
+        let travelData = JSON.parse(localStorage.getItem(storageKey)) || [];
 
         function initMap() {
             map = new AMap.Map('map', {
@@ -129,8 +132,8 @@
             markers = [];
             let pathPositions = [];
 
-            // 保存到本地
-            localStorage.setItem('m_control_save', JSON.stringify(travelData));
+            // 实时保存到本地，这样即使返回 index 再回来，数据也在
+            localStorage.setItem(storageKey, JSON.stringify(travelData));
 
             for (let i = 0; i < travelData.length; i++) {
                 const item = travelData[i];
@@ -138,90 +141,28 @@
                 const meta = metaKey ? INTEL_DB[metaKey] : { icon: '📍', cat: 'TASK', task: '区域探索', action: '到达后确认环境安全，同步实时坐标。' };
 
                 const card = document.createElement('div');
-                card.className = 'plan-card flex flex-col md:flex-row';
+                card.className = 'plan-card flex';
                 card.innerHTML = `
-                    <div class="drag-handle justify-center md:justify-start py-2 md:py-0">::</div>
+                    <div class="drag-handle">::</div>
                     <div class="p-4 flex-1">
-                        <div class="flex justify-between items-start mb-3 border-b border-[#ffb000]/20 pb-2">
+                        <div class="flex justify-between items-start mb-2 border-b border-[#ffb000]/20 pb-2">
                             <div class="flex items-center gap-3">
                                 <span class="text-sm bg-[#ffb000] text-black px-2 font-bold">${item.time}</span>
-                                <span class="text-lg font-bold tracking-widest text-white">${item.place}</span>
+                                <span class="text-lg font-bold text-white">${item.place}</span>
                             </div>
-                            <div class="flex flex-col items-end gap-1">
-                                <span class="cat-tag">[ ${meta.cat} ]</span>
-                                <button onclick="delSub(${i})" class="text-[10px] opacity-40 hover:opacity-100 mt-1">✕ ERASE</button>
-                            </div>
+                            <button onclick="delSub(${i})" class="text-[10px] opacity-40">✕</button>
                         </div>
-                        <div class="text-[11px] space-y-2 mt-2">
-                            <div class="text-white/80"><span class="text-[#ffb000]">任务：</span> ${meta.task}</div>
-                            <div class="text-white/80"><span class="text-[#ffb000]">MOMORECOM (ACTION)：</span> ${meta.action}</div>
-                            ${meta.directive ? `<div class="text-[#ffb000] bg-red-900/30 p-1 border-l-2 border-red-500 mt-2 animate-pulse">⚠️ 系统指令：${meta.directive}</div>` : ''}
-                        </div>
+                        <div class="text-[11px]"><span class="text-[#ffb000]">ACTION：</span>${meta.action}</div>
                     </div>
                 `;
                 list.appendChild(card);
 
-                // 精准定位补全逻辑
+                // 解析坐标 (略带容错)
                 let searchName = item.place;
-                if(searchName.length < 5 && !searchName.includes('市')) searchName = "深圳" + searchName;
-
                 const pos = await new Promise(resolve => {
                     geocoder.getLocation(searchName, (status, result) => {
                         resolve(status === 'complete' && result.geocodes.length ? result.geocodes[0].location : null);
                     });
                 });
 
-                if (pos) {
-                    pathPositions.push(pos);
-                    const m = new AMap.Marker({
-                        position: pos,
-                        content: `<div style="background:#ffb000; color:#000; width:20px; height:20px; border-radius:50%; text-align:center; line-height:20px; font-weight:bold; font-size:10px; border:1px solid #000;">${i+1}</div>`,
-                        offset: new AMap.Pixel(-10, -10)
-                    });
-                    markers.push(m);
-                    map.add(m);
-                }
-            }
-
-            if (pathPositions.length > 0) {
-                polyline.setPath(pathPositions);
-                map.setFitView([polyline, ...markers], false, [60, 60, 60, 60]);
-            }
-            document.getElementById('loc-num').innerText = travelData.length.toString().padStart(2, '0');
-        }
-
-        function addSub() {
-            const time = document.getElementById('sub-time').value || '00:00';
-            const place = document.getElementById('sub-place').value;
-            if (!place) return;
-            travelData.push({ time, place });
-            document.getElementById('sub-place').value = '';
-            render();
-        }
-
-        function delSub(i) {
-            travelData.splice(i, 1);
-            render();
-        }
-
-        function resetData() {
-            if(confirm("确定清空所有本地数据并重置系统？")) {
-                localStorage.removeItem('m_control_save');
-                location.reload();
-            }
-        }
-
-        Sortable.create(document.getElementById('sub-list'), { 
-            handle: '.drag-handle', 
-            animation: 250, 
-            onEnd: (evt) => {
-                const item = travelData.splice(evt.oldIndex, 1)[0];
-                travelData.splice(evt.newIndex, 0, item);
-                render();
-            }
-        });
-
-        window.onload = initMap;
-    </script>
-</body>
-</html>
+                if (pos)
